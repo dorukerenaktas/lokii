@@ -1,9 +1,9 @@
-import setuptools
+from setuptools import setup, find_packages
 
-setuptools.setup(
+setup(
     name='lokii',
-    packages=['lokii'],
-    version='0.0.1',
+    packages=find_packages(where='.'),
+    version='0.0.13',
     description='CSV dataset generator',
     author='Package Author',
     author_email='you@youremail.com',
@@ -26,4 +26,4 @@ setuptools.setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.8',
-    ])
+    ],)

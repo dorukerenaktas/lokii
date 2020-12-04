@@ -21,4 +21,4 @@ class ITool:
 
     @staticmethod
     def to_string(ctx: ToolContext):
-        return json.dumps(ctx)
+        return f" {ctx['table']} {ctx['col']} {ctx['index']} {ctx['lang']} {json.dumps(ctx['curr'])} {json.dumps(ctx['rel'])}"

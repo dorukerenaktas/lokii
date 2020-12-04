@@ -4,17 +4,17 @@ from typing import Dict, Callable, Collection
 
 from faker import Faker
 
-from lokii.table.row import Row
-from lokii.types import TableConfig
+from ..config import TableConfig
+from .row import Row
 
 
 class Table:
-    def __init__(self, config: TableConfig, fakes: Dict[str, Faker]):
+    def __init__(self, config: TableConfig, fakes: Dict[str, Faker], default_lang: str = 'en'):
         self.option = config['option']
         self.row = Row(config['name'], config['cols'])
         self.default = config['default'] if 'default' in config else []
         self.index = len(self.default)
-        self.default_lang = 'tr'
+        self.default_lang = default_lang
         self.fakes = fakes
 
     def exec(self, writer: DictWriter, get_rel: Callable[[str], Collection[Dict]]):

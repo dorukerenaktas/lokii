@@ -2,9 +2,9 @@ from typing import Dict, Collection
 
 from faker import Faker
 
-from lokii.types import ColumnOption
-from lokii.table.column import Column
-from lokii.table.tools.tool import ToolContext
+from ..config import ColumnOption
+from .column import Column
+from .tools.tool import ToolContext
 
 
 class Row:

@@ -5,8 +5,8 @@ from typing import Union
 
 from faker import Faker
 
-from lokii.types import LokiConfig
-from lokii.table.table import Table
+from .config import LokiConfig
+from .table import Table
 
 
 def get_table_path(out_folder: str, name: str):
@@ -45,7 +45,7 @@ class Lokii:
         for table_data in self.config['tables']:
             table = Table(table_data, fakes)
             table_file_name = get_table_path(self.out_folder, table_data['name'])
-            with open(table_file_name, 'w', newline='', encoding='utf-8') as outfile:
+            with open(table_file_name, 'w+', newline='', encoding='utf-8') as outfile:
                 writer = csv.DictWriter(outfile, fieldnames=[name for name in table_data['cols']])
                 writer.writeheader()
 
