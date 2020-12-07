@@ -13,7 +13,10 @@ class Table:
         self.option = config['option']
         self.row = Row(config['name'], config['cols'])
         self.default = config['default'] if 'default' in config else []
-        self.index = len(self.default)
+        if self.option['index_start']:
+            self.index = len(self.default) + self.option['index_start']
+        else:
+            self.index = len(self.default)
         self.default_lang = default_lang
         self.fakes = fakes
 
@@ -34,7 +37,8 @@ class Table:
     def simple(self, writer: DictWriter):
         for i in range(1, self.option['args']['count'] + 1):
             self.index += 1
-            writer.writerow(self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang], None))
+            writer.writerow(
+                self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang], None))
 
     def multiply(self, writer: DictWriter, get_rel: Callable[[str], Collection[Dict]]):
         rel_rows = get_rel(self.option['args']['table'])
@@ -51,7 +55,8 @@ class Table:
                 selected_lang = self.default_lang
                 if 'languages' in self.option['args']:
                     selected_lang = self.option['args']['languages'][i]
-                writer.writerow(self.row.exec(self.index, selected_lang, self.fakes[selected_lang], rel))
+                writer.writerow(
+                    self.row.exec(self.index, selected_lang, self.fakes[selected_lang], rel))
 
     def relation(self, writer: DictWriter, get_rel: Callable[[str], Collection[Dict]]):
         left_rel_rows = get_rel(self.option['args']['left']['table'])
@@ -60,7 +65,8 @@ class Table:
 
         right_rel_rows = get_rel(self.option['args']['right']['table'])
         if 'where' in self.option['args']['right']:
-            right_rel_rows = self.get_valid_rows(right_rel_rows, self.option['args']['right']['where'])
+            right_rel_rows = self.get_valid_rows(right_rel_rows,
+                                                 self.option['args']['right']['where'])
 
         if self.option['args']['count'] == 'cover':
             for row in left_rel_rows:
@@ -71,7 +77,9 @@ class Table:
                     self.option['args']['left']['table']: row,
                     self.option['args']['right']['table']: right_row
                 }
-                writer.writerow(self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang], rel))
+                writer.writerow(
+                    self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang],
+                                  rel))
         else:
             for i in range(self.option['args']['count']):
                 left_row = random.choice(left_rel_rows)
@@ -82,7 +90,9 @@ class Table:
                     self.option['args']['left']['table']: left_row,
                     self.option['args']['right']['table']: right_row
                 }
-                writer.writerow(self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang], rel))
+                writer.writerow(
+                    self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang],
+                                  rel))
 
     @staticmethod
     def get_valid_rows(rel_rows: Collection, conds: Collection):

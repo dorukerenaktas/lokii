@@ -8,6 +8,7 @@ class ColumnOption(TypedDict):
 
 class TableOption(TypedDict):
     type: str
+    index_start: int
     args: Dict
 
 
