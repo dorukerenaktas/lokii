@@ -1,55 +1,34 @@
-import csv
-import json
-from os import path, PathLike
-from typing import Union
+from os import makedirs, path, PathLike
+from typing import Union, List
 
-from faker import Faker
-
-from .config import LokiConfig
 from .table import Table
 
 
-def get_table_path(out_folder: str, name: str):
-    if '/' in name:
-        [schema_name, table_name] = name.split('/')
-        return path.join(out_folder, schema_name, table_name + '.csv')
-    return path.join(out_folder, name + '.csv')
-
-
-def get_table(out_folder: str, name: str):
-    with open(get_table_path(out_folder, name), newline='\n', encoding='utf-8') as infile:
-        reader = csv.reader(infile, delimiter=',', quotechar='"')
-        headers = next(reader)
-        rows = []
-        for row in reader:
-            rows.append({key: value for key, value in zip(headers, row)})
-        return rows
-
-
 class Lokii:
-    @staticmethod
-    def from_file(config_file: Union[str, bytes, PathLike], out_folder: Union[str, bytes, PathLike]='./out'):
-        with open(config_file) as config_file:
-            config = json.load(config_file)
-        return Lokii(config, out_folder)
 
-    def __init__(self, config: LokiConfig, out_folder: Union[str, bytes, PathLike]='./out'):
-        self.config = config
-        self.out_folder = out_folder
+    def __init__(self, out: Union[str, bytes, PathLike] = './data', process_count: int = 8, batch_size: int = 10000,
+                 write_buffer_size: int = 50000, index_cache_size: int = 50000, random_cache_size: int = 2000,
+                 debug: bool = False):
+        """
+        Generates massive amount of relational mock data.
 
-    def generate(self):
-        fakes = {}
-        for lang in self.config['languages']:
-            fakes[lang] = Faker([lang])
+        :param out: path of output folder for mock data
+        """
+        self._out = out
+        self._tables: List[Table] = []
 
-        for table_data in self.config['tables']:
-            table = Table(table_data, fakes)
-            table_file_name = get_table_path(self.out_folder, table_data['name'])
-            with open(table_file_name, 'w+', newline='', encoding='utf-8') as outfile:
-                writer = csv.DictWriter(outfile, fieldnames=[name for name in table_data['cols']])
-                writer.writeheader()
+        self._process_count = process_count
+        self._batch_size = batch_size
+        self._index_cache_size = index_cache_size
+        self._random_cache_size = random_cache_size
+        self._debug = debug
 
-                def get_table_with_path(name: str):
-                    return get_table(self.out_folder, name)
+        # Create out folder if not exists
+        if not path.exists(out):
+            makedirs(out)
 
-                table.exec(writer, get_table_with_path)
+    def table(self, name: str):
+        table = Table(name, path.join(self._out, name + '.csv'), self._process_count, self._batch_size,
+                      self._index_cache_size, self._random_cache_size, self._debug)
+        self._tables.append(table)
+        return table

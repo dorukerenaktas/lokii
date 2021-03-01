@@ -10,8 +10,8 @@ setup(
     url='http://path-to-my-packagename',
     py_modules=['lokii'],
     install_requires=[
-        'faker',
-        'slugify'
+        'pathos',
+        'pandas'
     ],
     license='MIT License',
     zip_safe=False,

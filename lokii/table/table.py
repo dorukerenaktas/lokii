@@ -1,108 +1,220 @@
+import math
+import time
+
+import pandas as pd
+from pathos.multiprocessing import ProcessingPool
 import random
 from csv import DictWriter
-from typing import Dict, Callable, Collection
-
-from faker import Faker
-
-from ..config import TableConfig
-from .row import Row
+from typing import Dict, Callable, List, Any
 
 
 class Table:
-    def __init__(self, config: TableConfig, fakes: Dict[str, Faker], default_lang: str = 'en'):
-        self.option = config['option']
-        self.row = Row(config['name'], config['cols'])
-        self.default = config['default'] if 'default' in config else []
-        if self.option['index_start']:
-            self.index = len(self.default) + self.option['index_start']
+    def __init__(self, name: str, outfile: str, process_count: int, batch_size: int, index_cache_size: int,
+                 random_cache_size: int, debug: bool):
+        """
+        Database table like data structure definition that hold column and general configuration to
+        adjust generated data.
+
+        :param name: name of the table
+        """
+        self.name = name
+        self._outfile = outfile
+        self._cols = None
+        self._relations: List["Table"] = []
+        self._defaults: List[Dict] = []
+
+        self._pivot: "Table" = None
+        self._pivot_mul_count: int = 1
+
+        self._index = 0
+        self._count = 0
+
+        self.row_count = 0
+
+        self._process_count = process_count
+        self._batch_size = batch_size
+        self._index_cache_size = index_cache_size
+        self._random_cache_size = random_cache_size
+        self._debug = debug
+
+        self._row_cache = []
+        self._row_cache_start = -1
+        self._row_cache_end = -1
+
+    def cols(self, *cols: List[str]) -> "Table":
+        """
+        Adds columns to table. Generated output will be ordered by given columns order.
+
+        :param cols: name of the columns
+        """
+        dup = {x for x in cols if cols.count(x) > 1}
+        if len(dup) > 0:
+            raise KeyError('Columns {} are duplicated for table {}'.format(dup, self.name))
+        self._cols = cols
+        return self
+
+    def rel(self, *tables: List["Table"]) -> "Table":
+        """
+        Adds relation to the table. For every generated row, a random row will be selected from relation tables.
+
+        :param tables: the relation table
+        """
+        dup = {x for x in tables if tables.count(x) > 1}
+        if len(dup) > 0:
+            raise KeyError('Relations {} are duplicated for table {}'.format(dup, self.name))
+
+        self._relations = tables
+        return self
+
+    def defaults(self, defaults: List[Dict]) -> "Table":
+        """
+        Adds default rows to the table. Every default row must have all required columns.
+
+        :param defaults: default rows for the table
+        """
+        for i, d in enumerate(defaults):
+            if all(k in self._cols for k in d):
+                raise KeyError(
+                    'Default row at index {} does have all required columns for table {}'.format(i, self.name))
+
+        self._defaults = defaults
+        return self
+
+    def simple(self, count: int, gen: Callable[[int, Dict], Dict]) -> "Table":
+        def generate_row(index: int, rel_dict: Dict) -> Dict:
+            return gen(index, rel_dict)
+
+        self._write_async(100 if self._debug else count, generate_row)
+        return self
+
+    def multiply(self, table: "Table", gen: Callable[[int, Any, Dict], Dict], multiplier: List = None) -> "Table":
+        self._pivot = table
+        self._pivot_mul_count = 1 if multiplier is None else len(multiplier)
+
+        mul_count = self._pivot_mul_count
+        count = table.row_count * mul_count
+
+        def generate_row(index: int, rel_dict: Dict) -> Dict:
+            return gen(index, multiplier[index % len(multiplier)], rel_dict)
+
+        self._write_async(count, generate_row)
+        return self
+
+    def load_index_cache(self, start: int, end: int) -> None:
+        """
+        Index cache is used for multiplying. Before starting batch jobs pivot table needs to cache all
+        range of required indexes.
+        :param start where batch job start at
+        :param end where batch job end at
+        """
+        if self._row_cache_start <= start and end <= self._row_cache_end:
+            # Already have all required indexes, do nothing
+            return
+
+        if start + self._index_cache_size > self.row_count:
+            # Remaining range is smaller than cache size, cache all remaining
+            self._row_cache_start = start
+            self._row_cache_end = self.row_count
         else:
-            self.index = len(self.default)
-        self.default_lang = default_lang
-        self.fakes = fakes
+            # Cache range from start to start + cache size
+            self._row_cache_start = start
+            self._row_cache_end = start + self._index_cache_size
 
-    def exec(self, writer: DictWriter, get_rel: Callable[[str], Collection[Dict]]):
-        # Write default rows
-        for row in self.default:
-            writer.writerow(row)
+        dfs = pd.read_csv(self._outfile, sep=',', header=0, names=self._cols, skiprows=self._row_cache_start,
+                          chunksize=self._row_cache_end - self._row_cache_start, squeeze=True)
+        df = pd.concat(dfs)
+        self._row_cache = df.to_dict(orient='records')
+        print('Indexes cached for table {} from {} to {} total {}'
+              .format(self.name, self._row_cache_start, self._row_cache_end, len(self._row_cache)))
 
-        if self.option['type'] == 'simple':
-            self.simple(writer)
+    def load_random_cache(self):
+        """
+        Random cache is used for relations. Before starting batch jobs relation table needs to cache
+        range of random indexes.
+        """
+        self._row_cache_start = random.randrange(self.row_count - self._random_cache_size)
+        self._row_cache_end = self._row_cache_start + self._random_cache_size
 
-        if self.option['type'] == 'multiply':
-            self.multiply(writer, get_rel)
+        dfs = pd.read_csv(self._outfile, sep=',', header=0, names=self._cols, skiprows=self._row_cache_start,
+                          chunksize=self._row_cache_end - self._row_cache_start, squeeze=True)
+        df = pd.concat(dfs)
+        self._row_cache = df.to_dict(orient='records')
 
-        if self.option['type'] == 'relation':
-            self.relation(writer, get_rel)
+    def purge_cache(self):
+        """
+        Purge cache after generation process end.
+        """
+        self._row_cache = []
+        self._row_cache_start = -1
+        self._row_cache_end = -1
 
-    def simple(self, writer: DictWriter):
-        for i in range(1, self.option['args']['count'] + 1):
-            self.index += 1
-            writer.writerow(
-                self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang], None))
+    def get_index_row(self, index: int):
+        if index >= self.row_count:
+            raise IndexError('Index {} is not valid for table {}'.format(index, self.name))
 
-    def multiply(self, writer: DictWriter, get_rel: Callable[[str], Collection[Dict]]):
-        rel_rows = get_rel(self.option['args']['table'])
-        if 'where' in self.option['args']:
-            rel_rows = self.get_valid_rows(rel_rows, self.option['args']['where'])
-        for row in rel_rows:
-            if 'var' in self.option['args'] and random.random() < self.option['args']['var']:
-                continue
+        if self._row_cache_start > index or self._row_cache_end < index:
+            raise IndexError('Index {} is not cached for table {}, cache range {}-{} of {}'
+                             .format(index, self.name, self._row_cache_start, self._row_cache_end, self.row_count))
 
-            rel = {self.option['args']['table']: row}
-            for i in range(self.option['args']['count']):
-                self.index += 1
+        return self._row_cache[index - self._row_cache_start]
 
-                selected_lang = self.default_lang
-                if 'languages' in self.option['args']:
-                    selected_lang = self.option['args']['languages'][i]
-                writer.writerow(
-                    self.row.exec(self.index, selected_lang, self.fakes[selected_lang], rel))
+    def get_random_row(self):
+        index = random.randint(self._row_cache_start, self._row_cache_end)
+        return self.get_index_row(index)
 
-    def relation(self, writer: DictWriter, get_rel: Callable[[str], Collection[Dict]]):
-        left_rel_rows = get_rel(self.option['args']['left']['table'])
-        if 'where' in self.option['args']['left']:
-            left_rel_rows = self.get_valid_rows(left_rel_rows, self.option['args']['left']['where'])
+    def _write_async(self, count: int, worker: Callable[[int, Dict], Dict]):
+        t = time.time()
+        with ProcessingPool(nodes=self._process_count) as pool:
+            with open(self._outfile, 'w+', newline='', encoding='utf-8') as outfile:
+                writer = DictWriter(outfile, fieldnames=[name for name in self._cols])
+                writer.writeheader()
 
-        right_rel_rows = get_rel(self.option['args']['right']['table'])
-        if 'where' in self.option['args']['right']:
-            right_rel_rows = self.get_valid_rows(right_rel_rows,
-                                                 self.option['args']['right']['where'])
+                print('Generation started for table {}'.format(self.name))
+                # Write defaults
+                writer.writerows(self._defaults)
+                self.row_count += len(self._defaults)
 
-        if self.option['args']['count'] == 'cover':
-            for row in left_rel_rows:
-                right_row = random.choice(right_rel_rows)
-                self.index += 1
+                while self.row_count < count:
+                    batch_start = self.row_count
+                    batch_end = batch_start + self._batch_size if batch_start + self._batch_size < count else count
 
-                rel = {
-                    self.option['args']['left']['table']: row,
-                    self.option['args']['right']['table']: right_row
-                }
-                writer.writerow(
-                    self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang],
-                                  rel))
-        else:
-            for i in range(self.option['args']['count']):
-                left_row = random.choice(left_rel_rows)
-                right_row = random.choice(right_rel_rows)
-                self.index += 1
+                    if self._pivot:
+                        # If pivot table available load index cache
+                        self._pivot.load_index_cache(math.floor(batch_start / self._pivot_mul_count),
+                                                     math.floor(batch_end / self._pivot_mul_count))
 
-                rel = {
-                    self.option['args']['left']['table']: left_row,
-                    self.option['args']['right']['table']: right_row
-                }
-                writer.writerow(
-                    self.row.exec(self.index, self.default_lang, self.fakes[self.default_lang],
-                                  rel))
+                    for rel in self._relations:
+                        # Load random cache for all relation tables
+                        rel.load_random_cache()
 
-    @staticmethod
-    def get_valid_rows(rel_rows: Collection, conds: Collection):
-        valid_rows = []
-        for target in rel_rows:
-            eligible = True
-            for cond in conds:
-                for key in cond:
-                    if target[key] != cond[key]:
-                        eligible = False
-            if eligible:
-                valid_rows.append(target)
-        return valid_rows
+                    if self._pivot:
+                        rel_dicts = [
+                            {
+                                **{rel.name: rel.get_random_row() for rel in self._relations},
+                                self._pivot.name: self._pivot.get_index_row(math.floor(index / self._pivot_mul_count))
+                            }
+                            for index in range(batch_start, batch_end)]
+                    else:
+                        rel_dicts = [
+                            {rel.name: rel.get_random_row() for rel in self._relations}
+                            for _ in range(batch_start, batch_end)
+                        ]
+
+                    result = pool.map(worker, [index for index in range(batch_start, batch_end)], rel_dicts)
+
+                    writer.writerows(result)
+                    self.row_count = batch_end
+                    print('#', end='', flush=True)
+
+        print('')
+        # Generation completed purge caches
+        if self._pivot:
+            # If pivot table available purge cache
+            self._pivot.purge_cache()
+
+        for rel in self._relations:
+            # Purge cache for all relation tables
+            rel.purge_cache()
+
+        elapsed_time = time.time() - t
+        print('Generated {} rows for table {} in {:.4f}s'.format(self.row_count, self.name, elapsed_time))

@@ -7,8 +7,8 @@ verify_ssl = true
 pytest = "*"
 
 [packages]
-faker = "*"
-slugify = "*"
+pandas = "*"
+pathos = "*"
 typing = "*"
 
 [requires]
