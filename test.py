@@ -6,7 +6,7 @@ from lokii import Lokii
 
 
 if __name__ == '__main__':
-    lokii = Lokii(debug=False)
+    lokii = Lokii(debug=True)
 
     f = Faker()
     fakes = {
@@ -23,10 +23,11 @@ if __name__ == '__main__':
 
     user_table = lokii.table('common.user') \
         .cols('id', 'name', 'surname') \
-        .simple(10000000, gen_user)
+        .simple(500000, gen_user)
 
 
     def gen_lecture(i: int, r: Dict):
+
         return {
             'id': i,
             'code': f.random.randint(1, 1000),
@@ -34,7 +35,7 @@ if __name__ == '__main__':
 
     lecture_table = lokii.table('common.lecture') \
         .cols('id', 'code') \
-        .simple(10000000, gen_lecture)
+        .simple(500000, gen_lecture)
 
     lecture_translate_table = lokii.table('common.lecture_translate') \
         .cols('id', 'fk_lecture_id', 'lang_code', 'name') \
@@ -47,9 +48,11 @@ if __name__ == '__main__':
 
     lecture_user_relation_table = lokii.table('common.lecture_user_rel') \
         .cols('id', 'fk_lecture_id', 'fk_user_id') \
-        .rel(lecture_table, user_table) \
-        .simple(10000000, lambda i, r: {
+        .rels(lecture_table, user_table) \
+        .simple(500000, lambda i, r: {
             'id': i,
             'fk_lecture_id': r['common.lecture']['id'],
             'fk_user_id': r['common.user']['id'],
         })
+
+    lokii.generate()

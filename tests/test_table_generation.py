@@ -8,7 +8,7 @@ class TestTableGeneration(unittest.TestCase):
         lokii = Lokii()
 
         user_table = lokii.table('common.user') \
-            .cols('id', 'name', 'surname') \
+            .columns('id', 'name', 'surname') \
             .simple(30000, lambda i, _: {
                 'id': i,
             })
