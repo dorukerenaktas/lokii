@@ -15,7 +15,7 @@ from .utils import print_process
 class Lokii:
 
     def __init__(self,
-                 out: Union[str, bytes, PathLike] = './data',
+                 out_folder: Union[str, bytes, PathLike] = './data',
                  process_count: int = 8,
                  batch_size: int = 10000,
                  write_buffer_size: int = 50000,
@@ -26,9 +26,9 @@ class Lokii:
         """
         Generates massive amount of relational mock data.
 
-        :param out: path of output folder for mock data
+        :param out_folder: path of output folder for mock data
         """
-        self._out = out
+        self.__out_folder = out_folder
         self._tables: Dict[str, Table] = {}
 
         self._process_count = process_count
@@ -38,18 +38,18 @@ class Lokii:
         self._silent = silent
         self._debug = debug
 
-        # Create out folder if not exists
-        if not path.exists(out):
-            makedirs(out)
-
     def table(self, name: str) -> Table:
-        table = Table(name, path.join(self._out, name + '.csv'), self._index_cache_size,
+        table = Table(name, path.join(self.__out_folder, name + '.csv'), self._index_cache_size,
                       self._random_cache_size, self._debug)
 
         self._tables[name] = table
         return self._tables[name]
 
     def generate(self):
+        # Create out folder if not exists
+        if not path.exists(self.__out_folder):
+            makedirs(self.__out_folder)
+
         for name, table in self._tables.items():
             print('GEN > {}'.format(name))
             t = time.time()
@@ -122,7 +122,7 @@ class Lokii:
 
                     result = pool.map(
                         table.gen_func,
-                        [index for index in range(batch_start, batch_end)], rel_dicts)
+                        [index + 1 for index in range(batch_start, batch_end)], rel_dicts)
 
                     writer.writerows(result)
                     table.row_count = batch_end

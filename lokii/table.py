@@ -51,6 +51,10 @@ class Table:
 
         :param cols: name of the columns
         """
+        if len(cols) <= 1:
+            # In order to use row cache (Pandas to dict oriented as records) there must be two or more rows
+            raise KeyError('Table {} must have 2 or more columns'.format(self.name))
+
         dup = {x for x in cols if cols.count(x) > 1}
         if len(dup) > 0:
             raise KeyError('Columns {} are duplicated for table {}'.format(dup, self.name))
@@ -97,6 +101,9 @@ class Table:
 
     def multiply(self, table: "Table", gen: Callable[[int, Any, Dict], Dict],
                  multiplier: List) -> "Table":
+        if len(multiplier) == 0:
+            raise KeyError('Table {} has a multiplier with no items'.format(self.name))
+
         self.is_product = True
         self.multiplicand = table
         self.multiplier = multiplier if multiplier else [1]
@@ -116,8 +123,8 @@ class Table:
         """
         Index cache is used for multiplying. Before starting batch jobs pivot table needs to cache all
         range of required indexes.
-        :param start where batch job start at
-        :param end where batch job end at
+        :param start index of range
+        :param end index of range
         """
         if self._row_cache_start <= start and end <= self._row_cache_end:
             # Already have all required indexes, do nothing
