@@ -145,26 +145,33 @@ class Table:
         df = pd.concat(dfs)
         self._row_cache = df.to_dict(orient='records')
 
-    def load_random_cache(self):
+    def load_random_cache(self, process: float):
         """
         Random cache is used for relations. Before starting batch jobs relation table needs to cache
         range of random indexes.
-        """
-        cache_size = self.row_count - self._random_cache_size \
-            if self.row_count - self._random_cache_size > 0 else self.row_count
 
-        if self.row_count - self._random_cache_size > 0:
-            self._row_cache_start = random.randrange(cache_size)
-            self._row_cache_end = self._row_cache_start + self._random_cache_size
-        else:
-            self._row_cache_start = 0
+        :param process completion ratio of the process
+        """
+        curr = int(self.row_count * process)
+        if self._row_cache_start <= curr <= self._row_cache_end:
+            # Already have all required indexes, do nothing
+            return
+
+        if curr + self._random_cache_size > self.row_count:
+            # Remaining range is smaller than cache size, cache all remaining
+            self._row_cache_start = curr
             self._row_cache_end = self.row_count
+        else:
+            # Cache range from start to start + cache size
+            self._row_cache_start = curr
+            self._row_cache_end = curr + self._random_cache_size
 
         dfs = pd.read_csv(self.outfile, sep=',', header=0, names=self.columns,
                           skiprows=self._row_cache_start,
                           chunksize=self._row_cache_end - self._row_cache_start, squeeze=True)
         df = pd.concat(dfs)
         self._row_cache = df.to_dict(orient='records')
+        random.shuffle(self._row_cache)
 
     def purge_cache(self):
         """
@@ -184,3 +191,9 @@ class Table:
                                      self.row_count))
 
         return self._row_cache[index - self._row_cache_start]
+
+    def get_rand(self, seed: int):
+        index = seed % self.row_count \
+            if self._random_cache_size > self.row_count \
+            else seed % self._random_cache_size
+        return self._row_cache[index]

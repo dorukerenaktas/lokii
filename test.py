@@ -17,8 +17,8 @@ if __name__ == '__main__':
     def gen_user(i: int, r: Dict):
         return {
             'id': i,
-            'name': f.first_name(),
-            'surname': f.last_name(),
+            'name': 'name',
+            'surname': 'surname',
         }
 
     user_table = lokii.table('common.user') \
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
         return {
             'id': i,
-            'code': f.random.randint(1, 1000),
+            'code': 'rand',
         }
 
     lecture_table = lokii.table('common.lecture') \
@@ -43,7 +43,7 @@ if __name__ == '__main__':
             'id': i,
             'fk_lecture_id': r['common.lecture']['id'],
             'lang_code': m,
-            'name': fakes[m].words(nb=5)
+            'name': 'name'
         }, ['en', 'tr'])
 
     lecture_user_relation_table = lokii.table('common.lecture_user_rel') \

@@ -20,7 +20,7 @@ class Lokii:
                  batch_size: int = 10000,
                  write_buffer_size: int = 50000,
                  index_cache_size: int = 50000,
-                 random_cache_size: int = 2000,
+                 random_cache_size: int = 20000,
                  silent: bool = False,
                  debug: bool = False):
         """
@@ -86,18 +86,7 @@ class Lokii:
 
                     for rel in table.relations:
                         # Load random cache for all relation tables
-                        rel.load_random_cache()
-
-                    def create_rel_index(_: int, start: int, end: int) -> int:
-                        return random.randint(start, end - 1)
-
-                    rel_indexes = [
-                        pool.map(partial(create_rel_index,
-                                         start=r._row_cache_start,
-                                         end=r._row_cache_end),
-                                 [_ for _ in range(batch_start, batch_end)])
-                        for r in table.relations
-                    ]
+                        rel.load_random_cache(batch_start / table.target_count)
 
                     if table.multiplicand:
                         rel_dicts = \
@@ -105,7 +94,7 @@ class Lokii:
                                 {
                                     table.multiplicand.name: table.multiplicand.get_row(
                                         math.floor(index / len(table.multiplier))),
-                                    **{r.name: r.get_row(rel_indexes[i][index - batch_start])
+                                    **{r.name: r.get_rand(index)
                                        for i, r in enumerate(table.relations)}
                                 }
                                 for index in range(batch_start, batch_end)
@@ -114,7 +103,7 @@ class Lokii:
                         rel_dicts = \
                             [
                                 {
-                                    r.name: r.get_row(rel_indexes[i][index - batch_start])
+                                    r.name: r.get_rand(index)
                                     for i, r in enumerate(table.relations)
                                 }
                                 for index in range(batch_start, batch_end)
