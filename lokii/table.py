@@ -34,8 +34,10 @@ class Table:
 
         # The number of rows to be created
         self.target_count = 0
-
+        # Processed number of target rows
         self.row_count = 0
+        # Number of generated rows
+        self.gen_row_count = 0
 
         self._index_cache_size = index_cache_size
         self._random_cache_size = random_cache_size
@@ -117,7 +119,7 @@ class Table:
 
     def prepare(self):
         if self.is_product:
-            self.target_count = self.multiplicand.row_count * len(self.multiplier)
+            self.target_count = self.multiplicand.gen_row_count * len(self.multiplier)
 
     def load_index_cache(self, start: int, end: int) -> None:
         """

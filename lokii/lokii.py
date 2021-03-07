@@ -71,6 +71,7 @@ class Lokii:
                 # Write defaults
                 writer.writerows(table.defaults)
                 table.row_count += len(table.defaults)
+                table.gen_row_count += len(table.defaults)
 
                 while table.row_count < table.target_count:
                     batch_start = table.row_count
@@ -113,8 +114,12 @@ class Lokii:
                         table.gen_func,
                         [index + 1 for index in range(batch_start, batch_end)], rel_dicts)
 
+                    # Remove none rows
+                    result = list(filter(None, result))
+
                     writer.writerows(result)
                     table.row_count = batch_end
+                    table.gen_row_count += len(result)
                     print_process(table.row_count, table.target_count)
         print('')
         # Generation completed purge caches

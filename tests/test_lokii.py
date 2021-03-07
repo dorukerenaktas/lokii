@@ -143,3 +143,42 @@ class TestLokii(unittest.TestCase):
             for rows in grouped_rows:
                 # Confirm that all multiplied rows of simple table has multiplied by all multiplier items
                 self.assertEqual(sorted([int(r['multiplier']) for r in rows]), sorted(multiplier))
+
+    def test_table_should_not_write_none_rows(self):
+        """
+        Test product table generation.
+        """
+        simple_count = 100
+        lokii = Lokii(out_folder=DATA_FOLDER, silent=True)
+
+        simple_table = lokii.table('test_simple') \
+            .cols('id', 'col') \
+            .simple(simple_count, lambda i, r: {
+                'id': i,
+                'col': 'col',
+            } if i < int(simple_count / 2) + 1 else None)
+
+        multiplier = [1, 2, 3]
+        product_table = lokii.table('test_product') \
+            .cols('id', 'multiplicand_id', 'multiplier') \
+            .multiply(simple_table, lambda i, m, r: {
+                'id': i,
+                'multiplicand_id': r['test_simple']['id'],
+                'multiplier': m
+            }, multiplier)
+
+        lokii.generate()
+
+        # Confirm that lokii not writes none rows
+        with open(simple_table.outfile) as csv_file:
+            simple_rows = list(csv.DictReader(csv_file, delimiter=','))
+
+            # Confirm that correct amount of rows are generated
+            self.assertEqual(len(simple_rows), int(simple_count / 2))
+
+        # Confirm that lokii generates product table
+        with open(product_table.outfile) as csv_file:
+            product_rows = list(csv.DictReader(csv_file, delimiter=','))
+
+            # Confirm that correct amount of rows are generated
+            self.assertEqual(len(product_rows), int(simple_count / 2) * len(multiplier))
