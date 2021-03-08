@@ -132,10 +132,10 @@ class Table:
             # Already have all required indexes, do nothing
             return
 
-        if start + self._index_cache_size > self.row_count:
+        if start + self._index_cache_size > self.gen_row_count:
             # Remaining range is smaller than cache size, cache all remaining
             self._row_cache_start = start
-            self._row_cache_end = self.row_count
+            self._row_cache_end = self.gen_row_count
         else:
             # Cache range from start to start + cache size
             self._row_cache_start = start
@@ -154,15 +154,15 @@ class Table:
 
         :param process completion ratio of the process
         """
-        curr = int(self.row_count * process)
+        curr = int(self.gen_row_count * process)
         if self._row_cache_start <= curr <= self._row_cache_end:
             # Already have all required indexes, do nothing
             return
 
-        if curr + self._random_cache_size > self.row_count:
+        if curr + self._random_cache_size > self.gen_row_count:
             # Remaining range is smaller than cache size, cache all remaining
             self._row_cache_start = curr
-            self._row_cache_end = self.row_count
+            self._row_cache_end = self.gen_row_count
         else:
             # Cache range from start to start + cache size
             self._row_cache_start = curr
@@ -184,18 +184,18 @@ class Table:
         self._row_cache_end = -1
 
     def get_row(self, index: int):
-        if index >= self.row_count:
+        if index >= self.gen_row_count:
             raise IndexError('Index {} is not valid for table {}'.format(index, self.name))
 
         if self._row_cache_start > index or self._row_cache_end < index:
             raise IndexError('Index {} is not cached for table {}, cache range {}-{} of {}'
                              .format(index, self.name, self._row_cache_start, self._row_cache_end,
-                                     self.row_count))
+                                     self.gen_row_count))
 
         return self._row_cache[index - self._row_cache_start]
 
     def get_rand(self, seed: int):
-        index = seed % self.row_count \
-            if self._random_cache_size > self.row_count \
+        index = seed % self.gen_row_count \
+            if self._random_cache_size > self.gen_row_count \
             else seed % self._random_cache_size
         return self._row_cache[index]

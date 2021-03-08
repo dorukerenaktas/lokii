@@ -149,6 +149,7 @@ class TestLokii(unittest.TestCase):
         Test product table generation.
         """
         simple_count = 100
+        rel_count = 100
         lokii = Lokii(out_folder=DATA_FOLDER, silent=True)
 
         simple_table = lokii.table('test_simple') \
@@ -158,11 +159,20 @@ class TestLokii(unittest.TestCase):
                 'col': 'col',
             } if i < int(simple_count / 2) + 1 else None)
 
+        rel_table = lokii.table('test_rel') \
+            .cols('id', 'col') \
+            .simple(simple_count, lambda i, r: {
+                'id': i,
+                'col': 'col',
+            } if i < int(rel_count / 2) + 1 else None)
+
         multiplier = [1, 2, 3]
         product_table = lokii.table('test_product') \
-            .cols('id', 'multiplicand_id', 'multiplier') \
+            .cols('id', 'rel_id', 'multiplicand_id', 'multiplier') \
+            .rels(rel_table) \
             .multiply(simple_table, lambda i, m, r: {
                 'id': i,
+                'rel_id': r['test_rel']['id'],
                 'multiplicand_id': r['test_simple']['id'],
                 'multiplier': m
             }, multiplier)
