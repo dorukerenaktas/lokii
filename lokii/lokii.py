@@ -58,7 +58,7 @@ class Lokii:
             self.__generate_table(name)
 
             elapsed_time = time.time() - t
-            print('END > {}: {} rows in {:.4f}s\n'.format(name, table.row_count, elapsed_time))
+            print('END > {}: {} rows in {:.4f}s\n'.format(name, table.gen_row_count, elapsed_time))
 
     def __generate_table(self, table_name: str):
         table = self._tables[table_name]
