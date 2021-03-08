@@ -77,14 +77,14 @@ class Table:
         self.relations = tables
         return self
 
-    def defaults(self, defaults: List[Dict]) -> "Table":
+    def defs(self, defaults: List[Dict]) -> "Table":
         """
         Adds default rows to the table. Every default row must have all required columns.
 
         :param defaults: default rows for the table
         """
         for i, d in enumerate(defaults):
-            if all(k in self.columns for k in d):
+            if not all(k in self.columns for k in d):
                 raise KeyError('Default row at index {} does have all required columns for table {}'
                                .format(i, self.name))
 

@@ -192,3 +192,37 @@ class TestLokii(unittest.TestCase):
 
             # Confirm that correct amount of rows are generated
             self.assertEqual(len(product_rows), int(simple_count / 2) * len(multiplier))
+
+    def test_table_should_write_default_rows(self):
+        """
+        Test product table generation.
+        """
+        simple_count = 100
+        lokii = Lokii(out_folder=DATA_FOLDER, silent=True)
+
+        default_rows = [
+                {'id': 1, 'col': 1},
+                {'id': 2, 'col': 2},
+                {'id': 3, 'col': 3}
+            ]
+
+        simple_table = lokii.table('test_simple') \
+            .cols('id', 'col') \
+            .defs(default_rows) \
+            .simple(simple_count, lambda i, r: {
+                'id': i,
+                'col': 'col',
+            } if i < int(simple_count / 2) + 1 else None)
+
+        lokii.generate()
+
+        # Confirm that lokii not writes none rows
+        with open(simple_table.outfile) as csv_file:
+            simple_rows = list(csv.DictReader(csv_file, delimiter=','))
+
+            # Confirm that correct amount of rows are generated
+            self.assertEqual(len(simple_rows), int(simple_count / 2))
+
+            # Confirm that default rows are generated
+            for index, default in enumerate(default_rows):
+                self.assertEqual(str(simple_rows[index]['col']), str(default['col']))
