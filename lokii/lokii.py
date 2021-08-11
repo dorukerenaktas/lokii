@@ -98,7 +98,7 @@ class Lokii:
                                     **{r.name: r.get_rand(index)
                                        for i, r in enumerate(table.relations)}
                                 }
-                                for index in range(batch_start, batch_end)
+                                for index in range(0, batch_end - batch_start)
                             ]
                     else:
                         rel_dicts = \
@@ -107,7 +107,7 @@ class Lokii:
                                     r.name: r.get_rand(index)
                                     for i, r in enumerate(table.relations)
                                 }
-                                for index in range(batch_start, batch_end)
+                                for index in range(0, batch_end - batch_start)
                             ]
 
                     result = pool.map(
