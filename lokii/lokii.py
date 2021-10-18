@@ -95,19 +95,19 @@ class Lokii:
                                 {
                                     table.multiplicand.name: table.multiplicand.get_row(
                                         math.floor(index / len(table.multiplier))),
-                                    **{r.name: r.get_rand(index)
+                                    **{r.name: r.get_rand(index - batch_start)
                                        for i, r in enumerate(table.relations)}
                                 }
-                                for index in range(0, batch_end - batch_start)
+                                for index in range(batch_start, batch_end)
                             ]
                     else:
                         rel_dicts = \
                             [
                                 {
-                                    r.name: r.get_rand(index)
+                                    r.name: r.get_rand(index - batch_start)
                                     for i, r in enumerate(table.relations)
                                 }
-                                for index in range(0, batch_end - batch_start)
+                                for index in range(batch_start, batch_end)
                             ]
 
                     result = pool.map(

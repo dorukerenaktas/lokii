@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='lokii',
     packages=find_packages(where='.'),
-    version='0.1.4',
+    version='0.1.5',
     description='CSV dataset generator',
     author='Package Author',
     author_email='you@youremail.com',
