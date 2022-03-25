@@ -70,11 +70,11 @@ class Lokii:
 
                 # Write defaults
                 writer.writerows(table.defaults)
-                table.row_count += len(table.defaults)
+                table.processed_row_count += len(table.defaults)
                 table.gen_row_count += len(table.defaults)
 
-                while table.row_count < table.target_count:
-                    batch_start = table.row_count
+                while table.processed_row_count < table.target_count:
+                    batch_start = table.processed_row_count
                     batch_end = batch_start + self._batch_size \
                         if batch_start + self._batch_size < table.target_count \
                         else table.target_count
@@ -118,9 +118,9 @@ class Lokii:
                     result = list(filter(None, result))
 
                     writer.writerows(result)
-                    table.row_count = batch_end
+                    table.processed_row_count = batch_end
                     table.gen_row_count += len(result)
-                    print_process(table.row_count, table.target_count)
+                    print_process(table.processed_row_count, table.target_count)
         print('')
         # Generation completed purge caches
         if table.is_product:

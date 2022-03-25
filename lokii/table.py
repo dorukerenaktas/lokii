@@ -16,6 +16,8 @@ class Table:
         adjust generated data.
 
         :param name: name of the table
+        :param outfile: relative path of the output file
+        :param index_cache_size:
         """
         self.name = name
         self.outfile = outfile
@@ -35,7 +37,7 @@ class Table:
         # The number of rows to be created
         self.target_count = 0
         # Processed number of target rows
-        self.row_count = 0
+        self.processed_row_count = 0
         # Number of generated rows
         self.gen_row_count = 0
 
