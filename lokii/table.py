@@ -145,9 +145,8 @@ class Table:
 
         dfs = pd.read_csv(self.outfile, sep=',', header=0, names=self.columns,
                           skiprows=self._row_cache_start,
-                          chunksize=self._row_cache_end - self._row_cache_start)\
-            .squeeze("columns")
-        df = pd.concat(dfs)
+                          chunksize=self._row_cache_end - self._row_cache_start)
+        df = pd.concat(dfs).squeeze("columns")
         self._row_cache = df.to_dict(orient='records')
 
     def load_random_cache(self, process: float):
@@ -173,9 +172,8 @@ class Table:
 
         dfs = pd.read_csv(self.outfile, sep=',', header=0, names=self.columns,
                           skiprows=self._row_cache_start,
-                          chunksize=self._row_cache_end - self._row_cache_start)\
-            .squeeze("columns")
-        df = pd.concat(dfs)
+                          chunksize=self._row_cache_end - self._row_cache_start)
+        df = pd.concat(dfs).squeeze("columns")
         self._row_cache = df.to_dict(orient='records')
         random.shuffle(self._row_cache)
 
