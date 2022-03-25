@@ -1,10 +1,19 @@
 Loki
 ==========================
-
-[![Build Status](https://travis-ci.org/mtchavez/python-package-boilerplate.png?branch=master)](https://travis-ci.org/mtchavez/python-package-boilerplate)
-[![Requires.io](https://requires.io/github/mtchavez/python-package-boilerplate/requirements.svg?branch=master)](https://requires.io/github/mtchavez/python-package-boilerplate/requirements?branch=master)
-
 Generate fake dataset with ease.
+
+## Upload to PyPI
+You can create the source distribution of the package by running the command given below:
+```shell
+python3 setup.py sdist
+```
+
+Install twine and upload pypi for `finnetdevlab` username.
+```shell
+pip3 install twine
+twine upload dist/*
+```
+
 
 ## Package
 
