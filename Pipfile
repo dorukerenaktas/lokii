@@ -10,6 +10,8 @@ pytest = "*"
 pandas = "*"
 pathos = "*"
 typing = "*"
+networkx = "*"
+Faker = "18.8.0"
 
 [requires]
 python_version = "3.8"
