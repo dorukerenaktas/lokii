@@ -1,0 +1,21 @@
+{
+  "cols": [
+    "customerNumber",
+    "customerName",
+    "contactLastName",
+    "contactFirstName",
+    "phone",
+    "addressLine1",
+    "addressLine2",
+    "city",
+    "state",
+    "postalCode",
+    "country",
+    "salesRepEmployeeNumber",
+    "creditLimit"
+  ],
+  "gen": {
+    "type": "simple",
+    "count": 1000
+  }
+}

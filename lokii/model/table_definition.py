@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Union, Literal, Optional
+from typing import TypedDict, List, Union, Literal, Optional, Any
 
 
 class SimpleGenConfig(TypedDict):
@@ -13,6 +13,13 @@ class MultiplyGenConfig(TypedDict):
     rels: Optional[List[str]]
 
 
-class TableConfig(TypedDict):
+class TableDefinition(TypedDict):
     cols: List[str]
     gen: Union[SimpleGenConfig, MultiplyGenConfig]
+
+
+class DatasetTableDefinition(TypedDict):
+    table_schema: str
+    table_name: str
+    table_def: TableDefinition
+    table_gen: Any

@@ -1,0 +1,15 @@
+{
+  "cols": [
+    "orderNumber",
+    "orderDate",
+    "requiredDate",
+    "shippedDate",
+    "status",
+    "comments",
+    "customerNumber"
+  ],
+  "gen": {
+    "type": "simple",
+    "count": 1000
+  }
+}

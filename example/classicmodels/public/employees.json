@@ -1,0 +1,16 @@
+{
+  "cols": [
+    "employeeNumber",
+    "lastName",
+    "firstName",
+    "extension",
+    "email",
+    "officeCode",
+    "reportsTo",
+    "jobTitle"
+  ],
+  "gen": {
+    "type": "simple",
+    "count": 1000
+  }
+}

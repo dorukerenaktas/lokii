@@ -1,0 +1,12 @@
+{
+  "cols": [
+    "productLine",
+    "textDescription",
+    "htmlDescription",
+    "image"
+  ],
+  "gen": {
+    "type": "simple",
+    "count": 1000
+  }
+}

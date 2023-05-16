@@ -7,8 +7,8 @@ from typing import Union, Dict, Any
 
 from pathos.multiprocessing import ProcessingPool
 
-from model.fake_config import FakeConfig
-from tabular.tabular_dataset import TabularDataset
+from model.fake_data_config import FakeDataConfig
+from tabular.dataset_config_reader import DatasetConfigReader
 from .utils import print_process
 
 
@@ -17,7 +17,7 @@ class Lokii:
     def __init__(self,
                  root_folder: Union[str, bytes, PathLike] = './schemas',
                  out_folder: Union[str, bytes, PathLike] = './data',
-                 fake_config: FakeConfig = None,
+                 fake_config: FakeDataConfig = None,
                  process_count: int = 8,
                  batch_size: int = 100000):
         """
@@ -31,9 +31,9 @@ class Lokii:
 
         if fake_config is None:
             fake_config = {"langs": ["tr", "en"], "seed": None}
-        self.__fake_config: FakeConfig = fake_config
+        self.__fake_config: FakeDataConfig = fake_config
 
-        self.__tabular = TabularDataset(self.__root_folder)
+        self.__conf_reader = DatasetConfigReader(self.__root_folder)
         self._process_count = process_count
         self._batch_size = batch_size
 
@@ -42,14 +42,14 @@ class Lokii:
         if not path.exists(self.__out_folder):
             makedirs(self.__out_folder)
 
-        self.__tabular.prepare()
-        execution_order = self.__tabular.execution_order()
+        self.__conf_reader.prepare()
+        execution_order = self.__conf_reader.execution_order()
 
         for table_name in execution_order:
             print('GEN > {}'.format(table_name))
             t = time.time()
 
-            table = self.__tabular.tables[table_name]
+            table = self.__conf_reader.tables[table_name]
             self.__generate_table(table)
 
             elapsed_time = time.time() - t

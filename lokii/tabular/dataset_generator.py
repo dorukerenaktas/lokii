@@ -1,14 +1,13 @@
 from faker import Faker
 
-from model.fake_config import FakeConfig
-from model.table_config import TableConfig
+from model.fake_data_config import FakeDataConfig
+from model.table_definition import TableDefinition
 
 
-class TabularDataset:
-    def __init__(self, table_config: TableConfig, fake_config: FakeConfig):
+class DatasetGenerator:
+    def __init__(self, table_config: TableDefinition, fake_config: FakeDataConfig):
         """
-        Database table like data structure definition that hold column and general configuration to
-        adjust generated data.
+        Generates dataset according to given configuration.
 
         :param table_config: source path of the tabular schema structure
         :param fake_config: source path of the tabular schema structure

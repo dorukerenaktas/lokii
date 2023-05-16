@@ -1,6 +1,6 @@
 from typing import TypedDict, List, Optional
 
 
-class FakeConfig(TypedDict):
+class FakeDataConfig(TypedDict):
     langs: List[str]
     seed: Optional[int]

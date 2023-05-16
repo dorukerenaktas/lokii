@@ -1,0 +1,13 @@
+{
+  "cols": [
+    "orderNumber",
+    "productCode",
+    "quantityOrdered",
+    "priceEach",
+    "orderLineNumber"
+  ],
+  "gen": {
+    "type": "simple",
+    "count": 1000
+  }
+}

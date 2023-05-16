@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from tabular.tabular_dataset import TabularDataset
+from tabular.dataset_config_reader import DatasetConfigReader
 
 def_files = {
     '/test/root/s1/a.json': {"cols": ['a', "b"], "gen": {}},
@@ -26,5 +26,5 @@ class TestTabular(unittest.TestCase):
 
     def test_prepare(self):
         with mock.patch("builtins.open", side_effect=open_side_effect):
-            tabular = TabularDataset('/test/root')
+            tabular = DatasetConfigReader('/test/root')
             tabular.prepare()

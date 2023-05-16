@@ -4,33 +4,34 @@ import json
 import networkx as nx
 from os import path, sep
 
-from typing import Dict, List
+from typing import Dict, List, Any
+
+from model.table_definition import TableDefinition, DatasetTableDefinition
 
 TABLE_DEF_FILE_EXTENSION = '.json'
 TABLE_GEN_FILE_EXTENSION = '.py'
 
 
-class TabularDataset:
+class DatasetConfigReader:
     def __init__(self, root_path: str):
         """
-        Database table like data structure definition that hold column and general configuration to
-        adjust generated data.
+        Reads and validates dataset configuration from filesystem structure.
 
-        :param root_path: source path of the tabular schema structure
+        :param root_path: root path of the tabular dataset schema structure
         """
         self.root = root_path
-        self.tables: Dict[str, Dict] = {}
+        self.tables: Dict[str, DatasetTableDefinition] = {}
 
     def prepare(self):
         # read all table definitions from given path
         glob_path = path.join(self.root, f"**/*{TABLE_DEF_FILE_EXTENSION}")
-        file_paths = [f for f in glob.iglob(glob_path)]
+        file_paths = [f for f in glob.glob(glob_path)]
 
         tables = {}
         for p in file_paths:
-            [table_schema, table_name] = TabularDataset.get_table_namespace(self.root, p)
-            table_def = TabularDataset.get_table_def(p)
-            table_gen = TabularDataset.get_table_gen(p)
+            [table_schema, table_name] = DatasetConfigReader.get_table_namespace(self.root, p)
+            table_def = DatasetConfigReader.get_table_def(p)
+            table_gen = DatasetConfigReader.get_table_gen(p)
 
             table_namespace = f"{table_schema}.{table_name}"
             tables[table_namespace] = {
@@ -66,10 +67,10 @@ class TabularDataset:
         return namespace.split(sep)
 
     @staticmethod
-    def get_table_def(p: str) -> Dict:
+    def get_table_def(p: str) -> TableDefinition:
         with open(p) as table_def_file:
             try:
-                table_def = json.load(table_def_file)
+                table_def: TableDefinition = json.load(table_def_file)
             except json.JSONDecodeError as err:
                 print(inspect.cleandoc(f"""
                 Error occurred when trying to parse table definition: "file://{p}"
@@ -106,7 +107,7 @@ class TabularDataset:
         return table_def
 
     @staticmethod
-    def get_table_gen(p: str):
+    def get_table_gen(p: str) -> Any:
         gen_file_path = p.replace(TABLE_DEF_FILE_EXTENSION, TABLE_GEN_FILE_EXTENSION)
         assert path.isfile(gen_file_path), inspect.cleandoc(f"""
         Can not find generation file for table definition: "file://{p}"
@@ -125,5 +126,6 @@ class TabularDataset:
 
 
 if __name__ == "__main__":
-    tabular = TabularDataset("/home/doruk/Documents/Projects/thor/Database/scripts/schemas")
-    tabular.prepare()
+    reader = DatasetConfigReader(path.abspath("../../example/classicmodels"))
+    reader.prepare()
+    print(reader.execution_order())

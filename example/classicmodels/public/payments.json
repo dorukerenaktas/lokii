@@ -1,0 +1,12 @@
+{
+  "cols": [
+    "customerNumber",
+    "checkNumber",
+    "paymentDate",
+    "amount"
+  ],
+  "gen": {
+    "type": "simple",
+    "count": 1000
+  }
+}
