@@ -1,4 +1,4 @@
-# lokii
+<img src="docs/assets/loki-logo.png" width="200" height="100" alt="Loki Logo" />
 
 Generate fake datasets with ease.
 
@@ -62,21 +62,21 @@ Generation config for detection generation order and generation function paramet
 ---
 
 ##### gen.type
-> required, type: `"simple" | "multiply"`
+> required, type: `"simple" | "product"`
 
 Generation type of the tabular data. Each option has own required properties.
 
 * `"simple"`: used for generating standalone table data that can be executed without any other table dependencies (If
     it has no relations.).
-* `"multiply"`: used for generating relational table data that needs other tables for generation function.
+* `"product"`: used for generating relational table data that needs other tables for generation function.
 
 ##### gen.count
 > required if `gen.type="simple"`, type: `int`
 
-Number of rows to be produced. Can not be used with `gen.type="multiply"`.
+Number of rows to be produced. Can not be used with `gen.type="product"`.
 
 ##### gen.mul
-> required if `gen.type="multiply"`, type: `List | str`
+> required if `gen.type="product"`, type: `List | str`
 
 Table namespace or a list that used as multiplier. Each item or row in multiplier will trigger current table's
 generation function. Can not be used with `gen.type="simple"`.

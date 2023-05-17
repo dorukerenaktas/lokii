@@ -16,6 +16,6 @@
   ],
   "gen": {
     "type": "simple",
-    "count": 1000
+    "count": 100000
   }
 }
