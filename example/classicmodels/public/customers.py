@@ -1,3 +1,6 @@
+conf = {"type": "simple", "count": 100000}
+
+
 def gen(i, c):
     name = c["f"]["d"].first_name()
     return {
@@ -12,6 +15,6 @@ def gen(i, c):
         "state": c["f"]["d"].city(),
         "postalCode": c["f"]["d"].postcode(),
         "country": c["f"]["d"].country(),
-        "salesRepEmployeeNumber": '',
-        "creditLimit":  c["f"]["d"].random_number(digits=8)
+        "salesRepEmployeeNumber": "",
+        "creditLimit": c["f"]["d"].random_number(digits=8),
     }

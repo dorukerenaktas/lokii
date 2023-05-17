@@ -1,7 +1,9 @@
+import logging
 import time
 from os import makedirs, path, PathLike
 from typing import Union
 
+from logger import log_config
 from model.fake_data_config import FakeDataConfig
 from model.execution_config import ExecutionConfig
 from tabular.dataset_config_reader import DatasetConfigReader
@@ -10,14 +12,15 @@ from tabular.dataset_storage_service import DatasetStorageService
 
 
 class Lokii:
-
-    def __init__(self,
-                 root_folder: Union[str, bytes, PathLike] = './schemas',
-                 out_folder: Union[str, bytes, PathLike] = './data',
-                 fake_config: FakeDataConfig = None,
-                 exec_config: ExecutionConfig = None,
-                 process_count: int = 8,
-                 batch_size: int = 100000):
+    def __init__(
+        self,
+        root_folder: Union[str, bytes, PathLike] = "./schemas",
+        out_folder: Union[str, bytes, PathLike] = "./data",
+        fake_config: FakeDataConfig = None,
+        exec_config: ExecutionConfig = None,
+        process_count: int = 8,
+        batch_size: int = 100000,
+    ):
         """
         Generates massive amount of relational mock data.
 
@@ -31,7 +34,11 @@ class Lokii:
             self.__fake_conf = {"langs": ["tr", "en"], "seed": None}
 
         if exec_config is None:
-            self.__exec_conf = {"process_count": 6, "batch_size": 1000, "cache_size": 100000}
+            self.__exec_conf = {
+                "process_count": 6,
+                "batch_size": 1000,
+                "cache_size": 100000,
+            }
 
         self.__conf_reader = DatasetConfigReader(self.__root_folder)
         self.__storage = DatasetStorageService()
@@ -47,16 +54,19 @@ class Lokii:
         execution_order = self.__conf_reader.execution_order()
 
         for table_name in execution_order:
-            print('GEN > {}'.format(table_name))
+            logger = logging.getLogger(table_name)
+            logger.info("GEN > {}".format(table_name))
             t = time.perf_counter()
 
             table = self.__conf_reader.tables[table_name]
-            generator = DatasetGenerator(table, self.__fake_conf, self.__exec_conf, self.__storage)
+            generator = DatasetGenerator(
+                table, self.__fake_conf, self.__exec_conf, self.__storage
+            )
             generator.generate()
 
             elapsed_time = time.perf_counter() - t
-            print('END > {}: {} rows in {:.4f}s\n'.format(table_name, 'table.gen_row_count',
-                                                          elapsed_time))
+            logger.info("END > {}: rows in {:.4f}s\n".format(table_name, elapsed_time))
+
     #
     # def __generate_table(self, table_config: Dict):
     #     with ProcessingPool(nodes=self._process_count) as pool:
@@ -129,5 +139,6 @@ class Lokii:
 
 
 if __name__ == "__main__":
-    tabular = Lokii(root_folder=path.abspath("../example/classicmodels"))
-    tabular.generate()
+    with log_config(verbose=logging.INFO):
+        tabular = Lokii(root_folder=path.abspath("../example/classicmodels"))
+        tabular.generate()

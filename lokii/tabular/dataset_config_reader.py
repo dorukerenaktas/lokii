@@ -115,7 +115,8 @@ class DatasetConfigReader:
         FIX: Create generation file at "file://{gen_file_path}".""")
 
         try:
-            spec = spec_from_file_location(table_name, gen_file_path)
+            mod_name = ".".join(["lokii_gen", table_name])
+            spec = spec_from_file_location(mod_name, gen_file_path)
             mod = module_from_spec(spec)
             sys.modules[table_name] = mod
             spec.loader.exec_module(mod)
