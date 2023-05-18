@@ -3,6 +3,14 @@ from __future__ import annotations
 from typing import TypedDict, List, Literal, Optional, Any
 
 
+class GenerationConfig(TypedDict):
+    type: Literal["simple"]
+
+
+class GenerationConfigModule(TypedDict):
+    conf: GenerationConfig
+
+
 class SimpleGenConfig(TypedDict):
     """
     Generation configuration that refers to a specific set of rules or parameters that determine
@@ -13,6 +21,7 @@ class SimpleGenConfig(TypedDict):
     :var count: target row count of the generated table
     :var rels: list of relation tables
     """
+
     type: Literal["simple"]
     count: int
     rels: Optional[List[str]]
@@ -37,6 +46,7 @@ class ProductGenConfig(TypedDict):
     :var mul: list of multiplier tables or literal lists
     :var rels: list of relation tables
     """
+
     type: Literal["product"]
     mul: List[str | int | List[str | int]]
     rels: Optional[List[str]]

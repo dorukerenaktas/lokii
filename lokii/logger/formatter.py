@@ -3,7 +3,7 @@ from textwrap import indent
 
 from typing import Dict
 
-from logger.color import default_formats
+from .color import default_formats
 
 
 class PrettyExceptionFormatter(logging.Formatter):

@@ -11,7 +11,7 @@ from typing import Callable, Any
 from model.execution_config import ExecutionConfig
 from model.fake_data_config import FakeDataConfig
 
-from model.table_definition import DatasetTableDefinition
+from model.gen_conf import DatasetTableDefinition
 from tabular.dataset_storage_service import DatasetStorageService
 
 
@@ -80,7 +80,9 @@ class DatasetGenerator:
             run_config.append((from_index, to_index, args))
 
         elapsed_time = time.perf_counter() - t
-        print('PRE > {} row data prep in {:.4f}s\n'.format(target_row_count, elapsed_time))
+        print(
+            "PRE > {} row data prep in {:.4f}s\n".format(target_row_count, elapsed_time)
+        )
 
         table_gen_func = partial(gen_func, self.__table_config["table_gen"])
         with ProcessPool(nodes=self.__exec_conf["process_count"]) as pool:

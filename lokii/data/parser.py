@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import logging
 import sys
 import glob
 import inspect
@@ -5,35 +8,58 @@ import json
 import networkx as nx
 from os import path, sep
 
-from typing import Dict, List, Any
+from typing import List, Any, cast
 
 from importlib.util import spec_from_file_location, module_from_spec
-from model.gen_conf import TableDefinition, DatasetTableDefinition
+
+from data.loader import DatasetModuleLoader
+from model.proj_conf import ProjectConfigModule
+from model.gen_conf import GenerationConfigModule, TableDefinition
 from tabular.dataset_constants import TABLE_DEF_FILE_EXTENSION, TABLE_GEN_FILE_EXTENSION
+from util.perf import PerformanceTimer
+
+PROJ_CONF_FILE_EXT = "conf.py"
+GEN_CONF_FILE_EXT = "gen.py"
 
 
-class DatasetConfigReader:
+class DatasetConfigParser:
     def __init__(self, root_path: str):
         """
         Reads and validates dataset configuration from filesystem structure.
 
-        :param root_path: root path of the tabular dataset schema structure
+        :param root_path: root path of the dataset generation schema
         """
         self.root = root_path
-        self.tables: Dict[str, DatasetTableDefinition] = {}
+        self.proj_conf: ProjectConfigModule | None = None
+        self.gen_confs: List[GenerationConfigModule] = []
 
     def prepare(self):
+        with PerformanceTimer() as t:
+            self.proj_conf = self.__parse_proj_conf()
+        if not self.proj_conf:
+            logging.info("Project conf file not found. Using defaults.")
+        else:
+            logging.info("Project configuration parsed in {:.4f}s".format(t.time))
+
+        with PerformanceTimer() as t:
+            self.gen_confs = list(self.__parse_gen_confs())
+        conf_count = len(self.gen_confs)
+        if conf_count == 0:
+            logging.warning(f"No generation files found at {self.root}")
+        else:
+            logging.info("{} gen files parsed in {:.4f}s".format(conf_count, t.time))
+
         # read all table definitions from given path
         glob_path = path.join(self.root, f"**/*{TABLE_DEF_FILE_EXTENSION}")
         file_paths = [f for f in glob.glob(glob_path)]
 
         tables = {}
         for p in file_paths:
-            [table_schema, table_name] = DatasetConfigReader.get_table_namespace(
+            [table_schema, table_name] = DatasetConfigParser.get_table_namespace(
                 self.root, p
             )
-            table_def = DatasetConfigReader.get_table_def(p)
-            table_gen = DatasetConfigReader.get_table_gen(table_name, p)
+            table_def = DatasetConfigParser.get_table_def(p)
+            table_gen = DatasetConfigParser.get_table_gen(table_name, p)
 
             table_namespace = f"{table_schema}.{table_name}"
             tables[table_namespace] = {
@@ -43,6 +69,29 @@ class DatasetConfigReader:
                 "table_gen": table_gen,
             }
         self.tables = tables
+
+    def __parse_proj_conf(self) -> ProjectConfigModule | None:
+        glob_path = path.join(self.root, f"**.{PROJ_CONF_FILE_EXT}")
+        file_paths = [f for f in glob.glob(glob_path)]
+
+        if len(file_paths) == 0:
+            return None
+
+        file_path = file_paths[0]
+        if len(file_paths) > 1:
+            logging.warning(f"Found multiple project conf files. Using {file_path}")
+
+        module = DatasetModuleLoader("proj_conf", file_path).load()
+        module.name = file_paths
+        return cast(ProjectConfigModule, module)
+
+    def __parse_gen_confs(self) -> List[GenerationConfigModule] | None:
+        glob_path = path.join(self.root, f"**.{GEN_CONF_FILE_EXT}")
+        file_paths = [f for f in glob.glob(glob_path)]
+
+        for file_path in file_paths:
+            module = DatasetModuleLoader("gen_conf", file_path).load()
+            yield cast(GenerationConfigModule, module)
 
     def execution_order(self):
         dig = nx.DiGraph()
@@ -156,6 +205,6 @@ class DatasetConfigReader:
 
 
 if __name__ == "__main__":
-    reader = DatasetConfigReader(path.abspath("../../example/classicmodels"))
+    reader = DatasetConfigParser(path.abspath("../../example/classicmodels"))
     reader.prepare()
     print(reader.execution_order())
