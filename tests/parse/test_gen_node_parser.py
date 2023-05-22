@@ -1,30 +1,64 @@
-import pytest
-from unittest import mock
+from unittest.mock import Mock
 
-from model.gen_module import GenRun
+import pytest
+
+from model.gen_module import GenRun, GenRunConf
 from parse.gen_node_parser import GenNodeParser
+
+func = lambda x: x
+conf: GenRunConf = {"source": "SELECT 1", "wait": [], "rels": {}, "func": func}
 
 
 @pytest.fixture
-def mock_module(mocker, node_conf):
-    mocker.patch("parse.gen_node_parser.glob.glob", return_value=["test.gen.py"])
+def mock_loader(mocker):
+    def patch(files: list[str] = None, node: dict = None) -> None:
+        mocker.patch("glob.glob", return_value=files or [])
+        mocker.patch("inspect.getsource", return_value="string code content")
+        m = type("GenNodeModule", (object,), node or {})()
+        mock = Mock()
+        mock.return_value.module = m
+        mock.return_value.version = m.version if hasattr(m, "version") else "v1"
+        mocker.patch("parse.gen_node_parser.ModuleFileLoader", mock)
 
-    module = type("obj", (object,), {"runs": node_conf})
-    mocker.patch(
-        "lokii.util.module_file_loader.ModuleFileLoader.load", return_value=module
-    )
+    return patch
 
 
-@mock.patch("parse.gen_node_parser.glob.glob", lambda *args: [])
-def test_parse_log_warning_if_no_modules_found(caplog):
-    parser = GenNodeParser("/test/path")
-    parser.parse()
+def test_parse_should_log_warning_if_no_modules_found(mock_loader, caplog):
+    mock_loader([])
+    GenNodeParser("/test/path").parse()
     assert "No generation node file found" in caplog.text
 
 
-@pytest.mark.usefixtures("mock_module")
+def test_parse_should_use_filename_if_name_not_provided(mock_loader):
+    mock_loader(["test.gen.py"], {"runs": [conf]})
+    parsed = GenNodeParser("/test/path").parse()
+    assert GenRun.create_key("test", 0) in parsed
+
+
+def test_parse_should_use_provided_name_instead_of_filename(mock_loader):
+    mock_loader(["test.gen.py"], {"name": "provided", "runs": [conf]})
+    parsed = GenNodeParser("/test/path").parse()
+    assert GenRun.create_key("provided", 0) in parsed
+
+
+def test_parse_should_use_provided_version_instead_of_file_hash(mock_loader):
+    mock_loader(["test.gen.py"], {"version": "provided", "runs": [conf]})
+    parsed = GenNodeParser("/test/path").parse()
+    assert parsed[GenRun.create_key("test", 0)].node_version == "provided"
+
+
+def test_parse_should_wait_previous_runs(mock_loader):
+    runs = [{**conf, "wait": ["node1/0"]}, {**conf, "wait": ["node2"]}]
+    mock_loader(["test.gen.py"], {"runs": runs})
+    parsed = GenNodeParser("/test/path").parse()
+
+    first_run = parsed[GenRun.create_key("test", 0)]
+    second_run = parsed[GenRun.create_key("test", 1)]
+    assert first_run.run_key in second_run.wait
+
+
 @pytest.mark.parametrize(
-    "node_conf, expect",
+    "runs, expect",
     [
         (None, "`runs` configuration not found"),
         ("config", "`runs` must be list"),
@@ -37,42 +71,14 @@ def test_parse_log_warning_if_no_modules_found(caplog):
         ([{"source": "", "func": lambda x, y: x}], "[`func`] must accept only one"),
     ],
 )
-def test_parse_raise_error_if_module_not_valid(expect):
-    parser = GenNodeParser("/test/path")
+def test_parse_raise_error_if_module_not_valid(mock_loader, runs, expect):
+    mock_loader(["test.gen.py"], {"runs": runs})
     with pytest.raises(AssertionError) as err:
-        parser.parse()
+        GenNodeParser("/test/path").parse()
     assert expect in str(err.value)
 
 
-def gen_test_func(_):
-    pass
-
-
-@pytest.mark.usefixtures("mock_module")
-@pytest.mark.parametrize(
-    "node_conf, expect",
-    [
-        (
-            [{"source": "q", "func": lambda x: x}],
-            GenRun(
-                "test",
-                0,
-                {"source": "q", "wait": [], "rels": {}, "func": lambda x: x},
-            ),
-        ),
-    ],
-)
-def test_parse_should_return_module_if_valid(expect):
-    parser = GenNodeParser("/test/path")
-    parsed = parser.parse()
-    assert len(parsed) == 1
-    assert parsed["test/0"].run_key == expect.run_key
-    assert parsed["test/0"].source == expect.source
-    assert parsed["test/0"].wait == expect.wait
-    assert parsed["test/0"].rels == expect.rels
-
-
-def test_analyze_should_raise_error_if_cyclic_dependencies_exists():
+def test_order_should_raise_error_if_cyclic_dependencies_exists():
     parser = GenNodeParser("/test/path")
     parser.gen_runs = {
         "n1": type("obj", (object,), {"run_key": "n1", "wait": ["n3"]}),
@@ -84,7 +90,7 @@ def test_analyze_should_raise_error_if_cyclic_dependencies_exists():
     assert "Found cyclic dependencies" in str(err.value)
 
 
-def test_analyze_should_return_execution_order():
+def test_order_should_return_execution_order():
     parser = GenNodeParser("/test/path")
     parser.gen_runs = {
         "n1": type("obj", (object,), {"run_key": "n1", "wait": ["n3"]}),

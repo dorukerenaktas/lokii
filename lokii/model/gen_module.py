@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import TypedDict, List, Optional, Callable, Dict
+from typing import TypedDict, Callable
 
-GenFunc = Callable[[Dict], Dict]
+GenFunc = Callable[[dict], dict]
 
 
 class GenRunConf(TypedDict):
@@ -10,20 +10,22 @@ class GenRunConf(TypedDict):
     :var source: Source SQL statement
     """
 
-    source: Optional[str]
-    wait: Optional[List[str]]
-    rels: Optional[Dict[str, str]]
-    func: Callable[[Dict], Dict]
+    source: str | None
+    wait: list[str] | None
+    rels: dict[str, str] | None
+    func: Callable[[dict], dict]
 
 
 class GenNodeModule:
-    name: Optional[str]
-    runs: List[GenRunConf]
+    name: str | None
+    version: str | None
+    runs: list[GenRunConf]
 
 
 class GenRun:
-    def __init__(self, node_name: str, index: int, run_conf: GenRunConf):
+    def __init__(self, node_name: str, version: str, index: int, run_conf: GenRunConf):
         self.node_name = node_name
+        self.node_version = version
         self.run_order = index
         self.run_key = GenRun.create_key(node_name, index)
 

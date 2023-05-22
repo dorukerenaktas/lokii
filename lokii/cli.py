@@ -1,8 +1,6 @@
 import argparse
 import logging
-import os
 import sys
-from os import path
 
 from pathlib import Path
 from typing import Optional
@@ -18,6 +16,7 @@ LOKII_ASCII = r"""
  \ \_____\  \ \_____\  \ \_\ \_\  \ \_\  \ \_\ 
   \/_____/   \/_____/   \/_/\/_/   \/_/   \/_/ 
 """
+LOKII_EPILOG = f""""""
 
 
 class Command:
@@ -31,44 +30,11 @@ class Command:
         to that command, and runs it.
         """
 
-        # retrieve default language from system environment
-
-        epilog = f"""supported locales:
-
-  Faker can take a locale as an optional argument, to return localized data. If
-  no locale argument is specified, the factory falls back to the user's OS
-  locale as long as it is supported by at least one of the providers.
-     - for this user, the default locale is.
-
-  If the optional argument locale and/or user's default locale is not available
-  for the specified provider, the factory falls back to faker's default locale,
-  which is.
-
-examples:
-
-  $ faker address
-  968 Bahringer Garden Apt. 722
-  Kristinaland, NJ 09890
-
-  $ faker -l de_DE address
-  Samira-Niemeier-Allee 56
-  94812 Biedenkopf
-
-  $ faker profile ssn,birthdate
-  {{'ssn': u'628-10-1085', 'birthdate': '2008-03-29'}}
-
-  $ faker -r=3 -s=";" name
-  Willam Kertzmann;
-  Josiah Maggio;
-  Gayla Schmitt;
-
-"""
-
         formatter_class = argparse.RawDescriptionHelpFormatter
         parser = argparse.ArgumentParser(
             prog=self.prog_name,
             description=f"{LOKII_ASCII}\n{self.prog_name} version {VERSION}",
-            epilog=epilog,
+            epilog=LOKII_EPILOG,
             formatter_class=formatter_class,
         )
 

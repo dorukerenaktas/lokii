@@ -62,7 +62,5 @@ class Lokii:
 
 if __name__ == "__main__":
     with log_config(verbose=logging.INFO):
-        tabular = Lokii(
-            "/home/doruk/Documents/Projects/thor/Database/scripts/schemas", "./data"
-        )
+        tabular = Lokii("../example/classicmodels", "./data")
         tabular.generate()

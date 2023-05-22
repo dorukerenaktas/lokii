@@ -5,7 +5,7 @@ from os import path, makedirs
 from typing import TypedDict, Dict, List
 
 TEMP_STORAGE_DIR = ".temp/data"
-TEMP_DB_STORAGE_DIR = ".temp/lokii.duckdb"
+TEMP_DB_PATH = ".temp/lokii.duckdb"
 
 
 class StorageMeta(TypedDict):
@@ -37,7 +37,7 @@ class StorageManager:
 
         if not path.exists(TEMP_STORAGE_DIR):
             makedirs(TEMP_STORAGE_DIR)
-        self._conn = duckdb.connect(database=TEMP_DB_STORAGE_DIR, read_only=False)
+        self._conn = duckdb.connect(database=TEMP_DB_PATH, read_only=False)
 
     def node_init(self, name: str, target: int) -> None:
         self.__storage_map[name] = {}
