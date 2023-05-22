@@ -1,14 +1,13 @@
 import logging
-import time
 from os import makedirs, path, PathLike
 from typing import Union
 
 from logger import log_config
-from model.fake_data_config import FakeDataConfig
-from model.execution_config import ExecutionConfig
-from tabular.dataset_config_reader import DatasetConfigReader
-from tabular.dataset_generator import DatasetGenerator
-from tabular.dataset_storage_service import DatasetStorageService
+from model.gen_module import GenRun
+from parse.gen_node_parser import GenNodeParser
+from storage.storage_manager import StorageManager
+from exec.gen_run_executor import GenRunExecutor
+from util.perf_timer_context import PerfTimerContext
 
 
 class Lokii:
@@ -16,10 +15,6 @@ class Lokii:
         self,
         root_folder: Union[str, bytes, PathLike] = "./schemas",
         out_folder: Union[str, bytes, PathLike] = "./data",
-        fake_config: FakeDataConfig = None,
-        exec_config: ExecutionConfig = None,
-        process_count: int = 8,
-        batch_size: int = 100000,
     ):
         """
         Generates massive amount of relational mock data.
@@ -30,112 +25,44 @@ class Lokii:
         self.__root_folder = root_folder
         self.__out_folder = out_folder
 
-        if fake_config is None:
-            self.__fake_conf = {"langs": ["tr", "en"], "seed": None}
-
-        if exec_config is None:
-            self.__exec_conf = {
-                "process_count": 6,
-                "batch_size": 1000,
-                "cache_size": 100000,
-            }
-
-        self.__conf_reader = DatasetConfigReader(self.__root_folder)
-        self.__storage = DatasetStorageService()
-        self._process_count = process_count
-        self._batch_size = batch_size
+        self.__gen_parser = GenNodeParser(self.__root_folder)
+        self.__storage = StorageManager()
 
     def generate(self):
-        # create out folder if not exists
-        if not path.exists(self.__out_folder):
-            makedirs(self.__out_folder)
+        with PerfTimerContext() as t:
+            # create out folder if not exists
+            if not path.exists(self.__out_folder):
+                makedirs(self.__out_folder)
 
-        self.__conf_reader.prepare()
-        execution_order = self.__conf_reader.execution_order()
+            gen_runs = self.__gen_parser.parse()
+            run_exec_order = self.__gen_parser.order()
 
-        for table_name in execution_order:
-            logger = logging.getLogger(table_name)
-            logger.info("GEN > {}".format(table_name))
-            t = time.perf_counter()
+            for run_key in run_exec_order:
+                gen_run = gen_runs[run_key]
+                self.generate_dataset(gen_run)
+                self.__storage.save(gen_run.node_name)
 
-            table = self.__conf_reader.tables[table_name]
-            generator = DatasetGenerator(
-                table, self.__fake_conf, self.__exec_conf, self.__storage
+        meta = self.__storage.all_meta()
+        logging.info("Generation completed!")
+        logging.info("Total target item count: {:,}".format(meta["target_count"]))
+        logging.info("Generated {:,} items in {}\n".format(meta["item_count"], t))
+
+    def generate_dataset(self, gen_run: GenRun):
+        logger = logging.getLogger(gen_run.run_key)
+
+        with PerfTimerContext() as t:
+            executor = GenRunExecutor(gen_run, self.__storage)
+            executor.prep()
+
+            logger.info(
+                "Generation started for target {:,} items".format(
+                    executor.target_item_count
+                )
             )
-            generator.generate()
+            executor.gen()
 
-            elapsed_time = time.perf_counter() - t
-            logger.info("END > {}: rows in {:.4f}s\n".format(table_name, elapsed_time))
-
-    #
-    # def __generate_table(self, table_config: Dict):
-    #     with ProcessingPool(nodes=self._process_count) as pool:
-    #         with open(table.outfile, 'w+', newline='', encoding='utf-8') as outfile:
-    #             writer = DictWriter(outfile, fieldnames=[name for name in table.columns])
-    #             writer.writeheader()
-    #
-    #             # Write defaults
-    #             writer.writerows(table.defaults)
-    #             table.processed_row_count += len(table.defaults)
-    #             table.gen_row_count += len(table.defaults)
-    #
-    #             while table.processed_row_count < table.target_count:
-    #                 batch_start = table.processed_row_count
-    #                 batch_end = batch_start + self._batch_size \
-    #                     if batch_start + self._batch_size < table.target_count \
-    #                     else table.target_count
-    #
-    #                 if table.is_product:
-    #                     # If it is a product table load index cache of multiplicand
-    #                     table.multiplicand.load_index_cache(
-    #                         math.floor(batch_start / len(table.multiplier)),
-    #                         math.floor(batch_end / len(table.multiplier)))
-    #
-    #                 for rel in table.relations:
-    #                     # Load random cache for all relation tables
-    #                     rel.load_random_cache(batch_start / table.target_count)
-    #
-    #                 if table.multiplicand:
-    #                     rel_dicts = \
-    #                         [
-    #                             {
-    #                                 table.multiplicand.name: table.multiplicand.get_row(
-    #                                     math.floor(index / len(table.multiplier))),
-    #                                 **{r.name: r.get_rand(index - batch_start)
-    #                                    for i, r in enumerate(table.relations)}
-    #                             }
-    #                             for index in range(batch_start, batch_end)
-    #                         ]
-    #                 else:
-    #                     rel_dicts = \
-    #                         [
-    #                             {
-    #                                 r.name: r.get_rand(index - batch_start)
-    #                                 for i, r in enumerate(table.relations)
-    #                             }
-    #                             for index in range(batch_start, batch_end)
-    #                         ]
-    #
-    #                 result = pool.map(
-    #                     table.gen_func,
-    #                     [index + 1 for index in range(batch_start, batch_end)], rel_dicts)
-    #
-    #                 # Remove none rows
-    #                 result = list(filter(None, result))
-    #
-    #                 writer.writerows(result)
-    #                 table.processed_row_count = batch_end
-    #                 table.gen_row_count += len(result)
-    #                 print_process(table.processed_row_count, table.target_count)
-    #     print('')
-    #     # Generation completed purge caches
-    #     if table.is_product:
-    #         # If it is a product table purge multiplicand cache
-    #         table.multiplicand.purge_cache()
-    #
-    #     for rel in table.relations:
-    #         # Purge cache for all relation tables
-    #         rel.purge_cache()
+        meta = self.__storage.node_meta(gen_run.node_name)
+        logger.info("{:,} items generated in {}\n".format(meta["item_count"], t))
 
 
 if __name__ == "__main__":
