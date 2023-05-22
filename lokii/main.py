@@ -1,31 +1,26 @@
 import logging
-from os import makedirs, path, PathLike
-from typing import Union
+from os import makedirs, path
 
-from logger import log_config
-from model.gen_module import GenRun
-from parse.gen_node_parser import GenNodeParser
-from storage.storage_manager import StorageManager
-from exec.gen_run_executor import GenRunExecutor
-from util.perf_timer_context import PerfTimerContext
+from lokii.logger import log_config
+from lokii.model.gen_module import GenRun
+from lokii.parse.gen_node_parser import GenNodeParser
+from lokii.storage.storage_manager import StorageManager
+from lokii.exec.gen_run_executor import GenRunExecutor
+from lokii.util.perf_timer_context import PerfTimerContext
 
 
 class Lokii:
-    def __init__(
-        self,
-        root_folder: Union[str, bytes, PathLike] = "./schemas",
-        out_folder: Union[str, bytes, PathLike] = "./data",
-    ):
+    def __init__(self, source_folder: str, out_folder: str):
         """
         Generates massive amount of relational mock data.
 
-        :param root_folder: path of root folder that contains schema and table definitions
+        :param source_folder: path of root folder that contains schema and table definitions
         :param out_folder: path of output folder for mock data
         """
-        self.__root_folder = root_folder
+        self.__source_folder = source_folder
         self.__out_folder = out_folder
 
-        self.__gen_parser = GenNodeParser(self.__root_folder)
+        self.__gen_parser = GenNodeParser(self.__source_folder)
         self.__storage = StorageManager()
 
     def generate(self):
@@ -67,5 +62,7 @@ class Lokii:
 
 if __name__ == "__main__":
     with log_config(verbose=logging.INFO):
-        tabular = Lokii(root_folder=path.abspath("../example/classicmodels"))
+        tabular = Lokii(
+            "/home/doruk/Documents/Projects/thor/Database/scripts/schemas", "./data"
+        )
         tabular.generate()

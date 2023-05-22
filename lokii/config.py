@@ -25,6 +25,8 @@ _home_configpath = join(os.path.expanduser("~"), ".hello-world", "config.yaml")
 _global_configpath = "/.hello-world/config.yaml"
 _default_configpath = join(dirname(dirname(os.path.realpath(__file__))), "config.yaml")
 
+VERSION = "1.0.0"
+
 
 def get_configpath() -> str:
     for path in [_env_configpath, _home_configpath, _global_configpath]:

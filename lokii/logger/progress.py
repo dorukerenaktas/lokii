@@ -1,9 +1,7 @@
-import logging
 from io import StringIO
-
 from tqdm import tqdm
 
-from logger.color import style
+from .color import style
 
 
 class ProgressLogger(StringIO):

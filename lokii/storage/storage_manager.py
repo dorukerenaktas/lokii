@@ -34,6 +34,9 @@ class StorageManager:
         """
         self.__meta: Dict[str, GenNodeStorageMeta] = {}
         self.__storage_map: Dict[str, Dict[int, GenNodeBatchPartition]] = {}
+
+        if not path.exists(TEMP_STORAGE_DIR):
+            makedirs(TEMP_STORAGE_DIR)
         self._conn = duckdb.connect(database=TEMP_DB_STORAGE_DIR, read_only=False)
 
     def node_init(self, name: str, target: int) -> None:
@@ -69,9 +72,6 @@ class StorageManager:
         storage_key = batch_storage_key(name, batch_index)
         storage_path = path.join(TEMP_STORAGE_DIR, storage_key + ".json")
 
-        if not path.exists(TEMP_STORAGE_DIR):
-            makedirs(TEMP_STORAGE_DIR)
-
         with open(storage_path, "w") as _f:
             _f.write(json.dumps(batch_data))
 
@@ -89,7 +89,7 @@ class StorageManager:
     def exec(self, query: str, index: int, size: int) -> list[dict]:
         q = f"SELECT * FROM ({query}) LIMIT {size} OFFSET {index * size};"
         data = self._conn.execute(q).df()
-        return data.to_dict('records')
+        return data.to_dict("records")
 
     def count(self, query: str) -> int:
         q = f"SELECT COUNT() FROM ({query});"
@@ -97,6 +97,12 @@ class StorageManager:
         return count
 
     def save(self, name: str) -> None:
+        if "." in name:
+            assert len(name.split(".")) == 2, "Nested schemas are not supported."
+            schema = name.split(".")[0]
+            q = f"CREATE SCHEMA IF NOT EXISTS {schema};"
+            self._conn.execute(q).fetchall()
+
         file_paths = [f["file_path"] for f in self.__storage_map[name].values()]
         q = f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM read_json_auto({file_paths});"
         self._conn.execute(q).fetchall()

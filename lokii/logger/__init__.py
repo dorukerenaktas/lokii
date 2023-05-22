@@ -1,7 +1,7 @@
 import logging
 
-from logger.context import LoggingContext, MultiContext
-from logger.formatter import MultiFormatter, PrettyExceptionFormatter
+from .context import LoggingContext, MultiContext
+from .formatter import MultiFormatter, PrettyExceptionFormatter
 
 
 def log_config(
@@ -97,7 +97,6 @@ def log_config(
 
 
 if __name__ == "__main__":
-
     with log_config(verbose=logging.DEBUG, filename="test.log"):
         try:
             logging.debug("A debug message")

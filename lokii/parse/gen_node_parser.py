@@ -8,21 +8,21 @@ from os import path
 
 from typing import cast, List, Dict
 
-from util.module_file_loader import ModuleFileLoader
-from model.gen_module import GenNodeModule, GenRunConf, GenRun
-from util.perf_timer_context import PerfTimerContext
+from lokii.model.gen_module import GenNodeModule, GenRunConf, GenRun
+from lokii.util.module_file_loader import ModuleFileLoader
+from lokii.util.perf_timer_context import PerfTimerContext
 
 GEN_CONF_FILE_EXT = ".gen.py"
 
 
 class GenNodeParser:
-    def __init__(self, root_path: str):
+    def __init__(self, source_folder: str):
         """
         Reads and validates dataset configuration from filesystem structure.
 
-        :param root_path: root path of the dataset generation schema
+        :param source_folder: root path of the dataset generation schema
         """
-        self.root = root_path
+        self.root = source_folder
         self.gen_nodes: Dict[str, GenNodeModule] = {}
         self.gen_runs: Dict[str, GenRun] = {}
 
@@ -77,27 +77,30 @@ class GenNodeParser:
 
             runs: List[GenRunConf] = []
             for i, r in enumerate(m.runs):
-                if "source" not in r:
-                    r["source"] = f"SELECT * FROM {parsed.name}"
-                elif not isinstance(r["source"], str):
-                    raise AssertionError(f"runs[{i}][`source`] must be str at {fp}")
-                if "wait" not in r:
-                    r["wait"] = []
-                elif not isinstance(r["wait"], list):
-                    raise AssertionError(f"runs[{i}][`wait`] must be list at {fp}")
-                if "rels" not in r:
-                    r["rels"] = {}
-                elif not isinstance(r["rels"], dict):
-                    raise AssertionError(f"runs[{i}][`rels`] must be dict at {fp}")
-                if "func" not in r:
-                    raise AssertionError(f"runs[{i}][`func`] not found at {fp}")
-                elif not inspect.isfunction(r["func"]):
-                    raise AssertionError(f"runs[{i}][`func`] must be function at {fp}")
-                elif len(inspect.signature(r["func"]).parameters) != 1:
-                    raise AssertionError(
-                        f"runs[{i}][`func`] must accept only one parameter at {fp}"
-                    )
-                runs.append(r)
+                runs.append(self.__parse_gen_run(i, r, parsed.name, fp))
 
             parsed.runs = runs
             yield parsed
+
+    def __parse_gen_run(self, i: int, r: GenRunConf, name: str, fp: str) -> GenRunConf:
+        if "source" not in r:
+            r["source"] = f"SELECT * FROM {name}"
+        elif not isinstance(r["source"], str):
+            raise AssertionError(f"runs[{i}][`source`] must be str at {fp}")
+        if "wait" not in r:
+            r["wait"] = []
+        elif not isinstance(r["wait"], list):
+            raise AssertionError(f"runs[{i}][`wait`] must be list at {fp}")
+        if "rels" not in r:
+            r["rels"] = {}
+        elif not isinstance(r["rels"], dict):
+            raise AssertionError(f"runs[{i}][`rels`] must be dict at {fp}")
+        if "func" not in r:
+            raise AssertionError(f"runs[{i}][`func`] not found at {fp}")
+        elif not inspect.isfunction(r["func"]):
+            raise AssertionError(f"runs[{i}][`func`] must be function at {fp}")
+        elif len(inspect.signature(r["func"]).parameters) != 1:
+            raise AssertionError(
+                f"runs[{i}][`func`] must accept only one parameter at {fp}"
+            )
+        return r

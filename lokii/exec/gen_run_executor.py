@@ -1,12 +1,11 @@
 import math
-import operator as op
-from functools import reduce, partial
+from functools import partial
 from typing import Callable, List, Dict
 from pathos.pools import ProcessPool
 
-from logger.progress import ProgressLogger
-from model.gen_module import GenRun
-from storage.storage_manager import StorageManager, GenNodeStorageMeta
+from lokii.logger.progress import ProgressLogger
+from lokii.model.gen_module import GenRun
+from lokii.storage.storage_manager import StorageManager
 
 CONCURRENCY = 8
 BATCH_SIZE = 100000
@@ -47,7 +46,10 @@ class GenRunExecutor:
                 to_index = self.target_item_count
 
             params = self.storage.exec(self.run.source, batch_index, BATCH_SIZE)
-            args = [{"index": i, "params": params[i]} for i in range(from_index, to_index)]
+            args = [
+                {"index": i, "id": i + 1, "params": params[i]}
+                for i in range(from_index, to_index)
+            ]
 
             chunk_args = [
                 args[i : i + CHUNK_SIZE] for i in range(0, len(args), CHUNK_SIZE)
@@ -57,7 +59,8 @@ class GenRunExecutor:
             gen_func = partial(_exec_chunk, self.run.func)
             with ProcessPool(nodes=CONCURRENCY) as pool:
                 for chunk in pool.uimap(gen_func, chunk_args):
-                    result.extend(chunk)
+                    cleaned = [i for i in chunk if i is not None]
+                    result.extend(cleaned)
                     logger.update(len(chunk))
 
             self.storage.dump(self.run.node_name, batch_index, result)

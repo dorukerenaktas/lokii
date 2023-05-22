@@ -1,6 +1,5 @@
 -i https://pypi.org/simple
 typing
-pyyaml~=6.0
 pandas~=2.0.1
 pathos~=0.3.0
 networkx~=3.1

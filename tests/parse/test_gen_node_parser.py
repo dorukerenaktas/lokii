@@ -10,7 +10,9 @@ def mock_module(mocker, node_conf):
     mocker.patch("parse.gen_node_parser.glob.glob", return_value=["test.gen.py"])
 
     module = type("obj", (object,), {"runs": node_conf})
-    mocker.patch("util.module_file_loader.ModuleFileLoader.load", return_value=module)
+    mocker.patch(
+        "lokii.util.module_file_loader.ModuleFileLoader.load", return_value=module
+    )
 
 
 @mock.patch("parse.gen_node_parser.glob.glob", lambda *args: [])
