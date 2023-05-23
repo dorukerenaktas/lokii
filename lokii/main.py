@@ -47,14 +47,10 @@ class Lokii:
 
         with PerfTimerContext() as t:
             executor = GenRunExecutor(gen_run, self.__storage)
-            executor.prep()
+            target_count = executor.prepare_node()
 
-            logger.info(
-                "Generation started for target {:,} items".format(
-                    executor.target_item_count
-                )
-            )
-            executor.gen()
+            logger.info("Generation started for target {:,} items".format(target_count))
+            executor.exec_node()
 
         meta = self.__storage.node_meta(gen_run.node_name)
         logger.info("{:,} items generated in {}\n".format(meta["item_count"], t))

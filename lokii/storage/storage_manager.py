@@ -30,7 +30,8 @@ def batch_storage_key(name: str, batch_index: int):
 class StorageManager:
     def __init__(self):
         """
-        Reads and validates dataset configuration from filesystem structure.
+        Temporary filesystem storage implementation for storing data generated between batches.
+        It only stores data temporary and deletes all files after
         """
         self.__meta: Dict[str, GenNodeStorageMeta] = {}
         self.__storage_map: Dict[str, Dict[int, GenNodeBatchPartition]] = {}
@@ -61,12 +62,6 @@ class StorageManager:
             meta["item_count"] += node_meta["item_count"]
             meta["batch_count"] += node_meta["batch_count"]
         return meta
-
-    def load(self, name: str, batch_index: int) -> List[Dict]:
-        storage_path = self.__storage_map[name][batch_index]["file_path"]
-
-        with open(storage_path, "r") as _f:
-            return json.load(_f)
 
     def dump(self, name: str, batch_index: int, batch_data: List[Dict]) -> None:
         storage_key = batch_storage_key(name, batch_index)
