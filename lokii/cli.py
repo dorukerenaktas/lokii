@@ -7,7 +7,7 @@ from typing import Optional
 
 from lokii import Lokii
 from lokii.logger import log_config
-from lokii.config import VERSION
+from lokii.config import CONFIG
 
 LOKII_ASCII = r"""
  __         ______     __  __     __     __    
@@ -33,13 +33,13 @@ class Command:
         formatter_class = argparse.RawDescriptionHelpFormatter
         parser = argparse.ArgumentParser(
             prog=self.prog_name,
-            description=f"{LOKII_ASCII}\n{self.prog_name} version {VERSION}",
+            description=f"{LOKII_ASCII}\n{self.prog_name} version {CONFIG.version}",
             epilog=LOKII_EPILOG,
             formatter_class=formatter_class,
         )
 
         parser.add_argument(
-            "--version", action="version", version=f"%(prog)s {VERSION}"
+            "--version", action="version", version=f"%(prog)s {CONFIG.version}"
         )
 
         parser.add_argument(
@@ -111,7 +111,7 @@ class Command:
 
         with log_config(verbose=verbose):
             try:
-                logging.info(LOKII_ASCII)
+                print(LOKII_ASCII)
                 lokii_gen = Lokii(arguments.source_folder, arguments.out_folder)
                 lokii_gen.generate()
             except Exception as err:

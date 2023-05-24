@@ -1,9 +1,15 @@
+#!/usr/bin/env python
+from pathlib import Path
+
 from setuptools import setup, find_packages
+
+root = Path(__file__).resolve().parent
+VERSION = (root / "VERSION").read_text(encoding="utf-8").strip()
 
 setup(
     name="lokii",
+    version=VERSION,
     packages=find_packages(where="."),
-    version="1.0.0",
     description="CSV dataset generator",
     author="Package Author",
     author_email="you@youremail.com",

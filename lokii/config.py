@@ -1,71 +1,83 @@
-"""
-config.py
-
-A custom config yaml may be provided in the following locations:
-
-
-<VIRTUAL-ENVIRONMENT-ROOT>/.hello-world/config.yaml   # environment config
-~/.hello-world/config.yaml                            # user config
-/.hello-world/config.yaml                             # global config
-
-First, the environment config location is checked for a config file. If not
-found, then the user location is checked, and if no config file is found,
-the global config location is checked. If no config file is found, the default
-config.yaml included in this package will be used.
-
-"""
-
 import os
-from os.path import dirname, join
-import sys
-import yaml
+from pathlib import Path
 
-_env_configpath = join(sys.exec_prefix, ".hello-world", "config.yaml")
-_home_configpath = join(os.path.expanduser("~"), ".hello-world", "config.yaml")
-_global_configpath = "/.hello-world/config.yaml"
-_default_configpath = join(dirname(dirname(os.path.realpath(__file__))), "config.yaml")
+root = Path(__file__).resolve().parent.parent
+# read app version from root of the project
+VERSION = (root / "VERSION").read_text(encoding="utf-8").strip()
 
-VERSION = "1.0.0"
+# temp directory that contains generated runtime files and database
+TEMP_DIR_PATH = os.environ.get("LOKII__TEMP_DIR_PATH", ".temp")
+# duckdb database that stores generated data in relational tables
+TEMP_DB_FILE = os.environ.get("LOKII__TEMP_DB_FILE", "lokii.duckdb")
+# name of the temp data file that contains generated runtime files
+TEMP_DATA_DIR = os.environ.get("LOKII__TEMP_DATA_DIR", "data")
+# remove database after generation is completed
+TEMP_PURGE = os.environ.get("LOKII__TEMP_PURGE", "False")
+
+# file extension to look for when finding generation config files
+GEN_FILE_EXT = os.environ.get("LOKII__GEN_FILE_EXT", ".gen.py")
+# -
+GEN_CONCURRENCY = os.environ.get("LOKII__GEN_CONCURRENCY", os.cpu_count())
+# -
+GEN_BATCH_SIZE = os.environ.get("LOKII__GEN_BATCH_SIZE", 100_000)
+# -
+GEN_CHUNK_SIZE = os.environ.get("LOKII__GEN_CHUNK_SIZE", 200)
 
 
-def get_configpath() -> str:
-    for path in [_env_configpath, _home_configpath, _global_configpath]:
-        if os.path.exists(path):
-            return path
-    return _default_configpath
+class __Config:
+    class __TempConfig:
+        """
+        Global configuration for storing temp file paths.
+        """
 
+        @property
+        def dir_path(self) -> str:
+            return TEMP_DIR_PATH
 
-def get_config() -> dict:
-    with open(get_configpath(), "rt") as f:
-        return yaml.load(f, Loader=yaml.FullLoader)
+        @property
+        def db_path(self) -> str:
+            return os.path.join(TEMP_DIR_PATH, TEMP_DB_FILE)
 
+        @property
+        def data_path(self) -> str:
+            return os.path.join(TEMP_DIR_PATH, TEMP_DATA_DIR)
 
-class _Config:
+        @property
+        def purge(self) -> bool:
+            return TEMP_PURGE != "False"
+
+    class __GenConfig:
+        """
+        Global configuration for storing generation information.
+        """
+
+        @property
+        def file_ext(self) -> str:
+            return GEN_FILE_EXT
+
+        @property
+        def concurrency(self) -> int:
+            return int(GEN_CONCURRENCY)
+
+        @property
+        def batch_size(self) -> int:
+            return int(GEN_BATCH_SIZE)
+
+        @property
+        def chunk_size(self) -> int:
+            return int(GEN_CHUNK_SIZE)
+
     @property
-    def color(self):
-        if self.get_test_mode_enabled():
-            return get_config()["test_mode"]["color"]
-        return get_config()["color"]
+    def version(self):
+        return VERSION
 
     @property
-    def attrs(self):
-        if self.get_test_mode_enabled():
-            return get_config()["test_mode"]["attrs"]
-        return get_config()["attrs"]
+    def temp(self):
+        return self.__TempConfig()
 
-    def get_test_mode_enabled(self):
-        _env_var = os.environ.get("HW_TEST_MODE_ENABLED")
-        if not _env_var:
-            return False
-        if _env_var.upper() == "TRUE":
-            return True
-        return False
-
-    def set_test_mode_enabled(self, val: bool):
-        if isinstance(val, bool):
-            os.environ["HW_TEST_MODE_ENABLED"] = str(val).upper()
-        else:
-            raise TypeError(f"Must provide a bool, not a {type(val)}")
+    @property
+    def gen(self):
+        return self.__GenConfig()
 
 
-CONFIG = _Config()
+CONFIG = __Config()

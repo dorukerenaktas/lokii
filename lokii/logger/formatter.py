@@ -1,8 +1,6 @@
 import logging
 from textwrap import indent
 
-from typing import Dict
-
 from .color import default_formats
 
 
@@ -35,7 +33,7 @@ class PrettyExceptionFormatter(logging.Formatter):
 class MultiFormatter(PrettyExceptionFormatter):
     """Format log messages differently for each log level"""
 
-    def __init__(self, formats: Dict[int, str] = None, **kwargs):
+    def __init__(self, formats: dict[int, str] = None, **kwargs):
         base_format = kwargs.pop("fmt", None)
         super().__init__(base_format, **kwargs)
 

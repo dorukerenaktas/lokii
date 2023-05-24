@@ -1,13 +1,15 @@
 import logging
+import os
+import shutil
 import uuid
-from os import makedirs, path
 
+from lokii.config import CONFIG
 from lokii.logger import log_config
 from lokii.model.gen_module import GenRun
 from lokii.parse.node_parser import NodeParser
-from parse.graph_analyzer import GraphAnalyzer
-from storage.node_data_storage import NodeDataStorage
-from lokii.exec.gen_run_executor import GenRunExecutor
+from lokii.parse.graph_analyzer import GraphAnalyzer
+from lokii.storage.data_storage import DataStorage
+from lokii.exec.gen_executor import GenExecutor
 from lokii.util.perf_timer_context import PerfTimerContext
 
 
@@ -23,14 +25,15 @@ class Lokii:
         self.__out_folder = out_folder
         self.__gen_id = str(uuid.uuid4())
 
-        self.__node_storage = NodeDataStorage()
+        Lokii.setup_env()
+        self.__data_storage = DataStorage()
         self.__gen_parser = NodeParser(self.__source_folder)
 
     def generate(self):
         with PerfTimerContext() as t:
             # create out folder if not exists
-            if not path.exists(self.__out_folder):
-                makedirs(self.__out_folder)
+            if not os.path.exists(self.__out_folder):
+                os.makedirs(self.__out_folder)
 
             gen_runs = self.__gen_parser.parse()
             analyzer = GraphAnalyzer(list(gen_runs.values()))
@@ -50,30 +53,31 @@ class Lokii:
                 total_item_count += item_count
 
                 # save generation metadata in database
-                self.__node_storage.save(self.__gen_id, run.run_key, run.node_version)
+                self.__data_storage.save(self.__gen_id, run.run_key, run.node_version)
                 # insert generated data in database
-                self.__node_storage.insert(run.node_name, file_paths)
+                self.__data_storage.insert(run.node_name, file_paths)
 
         logging.info("Generation completed!")
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
+        Lokii.clean_env()
 
     def generate_dataset(self, gen_run: GenRun) -> (int, int, list[str]):
         with PerfTimerContext() as t:
             logger = logging.getLogger(gen_run.run_key)
 
-            executor = GenRunExecutor(gen_run, self.__node_storage)
+            executor = GenExecutor(gen_run, self.__data_storage)
             target_count = executor.prepare_node()
 
             logger.info("Generation started for target {:,} items".format(target_count))
             generated_file_paths = executor.exec_node()
-            item_count = executor.gen_item_count
+            item_count = executor.g_count
 
         logger.info("{:,} items generated in {}".format(item_count, t))
         return target_count, item_count, generated_file_paths
 
     def is_dataset_valid(self, run: GenRun, dep_keys: list[str]):
-        metadata = self.__node_storage.meta([*dep_keys, run.run_key])
+        metadata = self.__data_storage.meta([*dep_keys, run.run_key])
         curr = [m for m in metadata if m["run_key"] == run.run_key]
         if len(curr) == 0:
             # no dataset generated before with this run key
@@ -87,6 +91,19 @@ class Lokii:
                 return False  # must regenerate
         # no code changes, no dependencies changed
         return True  # dataset is valid, do not regenerate
+
+    @staticmethod
+    def setup_env():
+        Lokii.clean_env()
+        if not os.path.exists(CONFIG.temp.data_path):
+            os.makedirs(CONFIG.temp.data_path)
+
+    @staticmethod
+    def clean_env(force: bool = False):
+        if (CONFIG.temp.purge or force) and os.path.exists(CONFIG.temp.dir_path):
+            shutil.rmtree(CONFIG.temp.dir_path)
+        elif os.path.exists(CONFIG.temp.data_path):
+            shutil.rmtree(CONFIG.temp.data_path)
 
 
 if __name__ == "__main__":

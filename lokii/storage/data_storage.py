@@ -1,8 +1,9 @@
+import os
 from typing import TypedDict
 
 import duckdb
 
-TEMP_DB_PATH = ".temp/lokii.duckdb"
+from lokii.config import CONFIG
 
 
 class NodeMetadata(TypedDict):
@@ -11,15 +12,18 @@ class NodeMetadata(TypedDict):
     gen_id: str
 
 
-class NodeDataStorage:
+class DataStorage:
     def __init__(self):
         """
         Temporary filesystem storage implementation for storing data generated between batches.
         It only stores data temporary and deletes all files after
         """
-        self._conn = duckdb.connect(database=TEMP_DB_PATH, read_only=False)
+        self._conn = duckdb.connect(database=CONFIG.temp.db_path, read_only=False)
         # create node meta table to store run generation information
-        q = "CREATE TABLE IF NOT EXISTS main.__meta(run_key TEXT, version TEXT, gen_id TEXT, PRIMARY KEY(run_key));"
+        q = (
+            "CREATE TABLE IF NOT EXISTS main.__meta"
+            "(run_key TEXT, version TEXT, gen_id TEXT, PRIMARY KEY(run_key));"
+        )
         self._conn.execute(q).fetchall()
 
     def meta(self, run_keys: list[str]) -> list[NodeMetadata]:
@@ -45,8 +49,8 @@ class NodeDataStorage:
 
     def save(self, gen_id: str, run_key: str, version: str) -> None:
         """
-        Generation id and node version will be stored in a meta table that can be used to check if gen run
-        data is valid for consecutive runs.
+        Generation id and node version will be stored in a meta table that can be used to check
+        if gen run data is valid for consecutive runs.
 
         :param gen_id: identification of the generation process
         :param run_key: identification of the generation run
@@ -60,9 +64,9 @@ class NodeDataStorage:
 
     def insert(self, name: str, files: list[str]) -> None:
         """
-        Creates a table for given node name in local relational database. If there is a table with the same
-        node name it will drop all data and create a fresh one. Given files will be concatenated and inserted
-        in the fresh table.
+        Creates a table for given node name in local relational database. If there is a table
+        with the same node name it will drop all data and create a fresh one. Given files will
+        be concatenated and inserted in the fresh table.
 
         :param name: node name of the module
         :param files: list of generated file paths

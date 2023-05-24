@@ -5,11 +5,10 @@ import glob
 import inspect
 from os import path
 
+from lokii.config import CONFIG
 from lokii.model.gen_module import GenNodeModule, GenRunConf, GenRun
 from lokii.util.module_file_loader import ModuleFileLoader
 from lokii.util.perf_timer_context import PerfTimerContext
-
-GEN_CONF_FILE_EXT = ".gen.py"
 
 
 class NodeParser:
@@ -41,7 +40,7 @@ class NodeParser:
         return self.gen_runs
 
     def __parse_nodes(self) -> list[GenNodeModule] | None:
-        glob_path = path.join(self.root, f"**/*{GEN_CONF_FILE_EXT}")
+        glob_path = path.join(self.root, f"**/*{CONFIG.gen.file_ext}")
         file_paths = [f for f in glob.glob(glob_path)]
 
         for fp in file_paths:
@@ -55,7 +54,7 @@ class NodeParser:
             assert len(m.runs) > 0, f"`runs` has no items at {fp}"
 
             parsed = GenNodeModule()
-            parsed.name = path.basename(fp).replace(GEN_CONF_FILE_EXT, "")
+            parsed.name = path.basename(fp).replace(CONFIG.gen.file_ext, "")
             parsed.version = loader.version
             if hasattr(m, "name"):
                 parsed.name = m.name

@@ -5,14 +5,12 @@ from .color import style
 
 
 class ProgressLogger(StringIO):
-    def __init__(self, name: str, total: float):
+    def __init__(self, total: float):
         super(ProgressLogger, self).__init__()
         self.buf = None
         self.pbar = tqdm(
             total=total,
-            desc=f"INFO  | {name} >",
-            bar_format=style("{desc}", fg="cyan")
-            + " {bar} "
+            bar_format="{bar} "
             + style(
                 "{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]",
                 fg="cyan",

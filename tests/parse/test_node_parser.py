@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 import pytest
 
 from model.gen_module import GenRun, GenRunConf
@@ -14,10 +12,9 @@ def mock_loader(mocker):
         mocker.patch("glob.glob", return_value=files or [])
         mocker.patch("inspect.getsource", return_value="string code content")
         m = type("GenNodeModule", (object,), node or {})()
-        mock = Mock()
+        mock = mocker.patch("parse.node_parser.ModuleFileLoader")
         mock.return_value.module = m
         mock.return_value.version = m.version if hasattr(m, "version") else "v1"
-        mocker.patch("parse.node_parser.ModuleFileLoader", mock)
 
     return patch
 
