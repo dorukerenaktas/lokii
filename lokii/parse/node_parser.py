@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import glob
 import inspect
-import networkx as nx
 from os import path
 
 from lokii.model.gen_module import GenNodeModule, GenRunConf, GenRun
@@ -13,7 +12,7 @@ from lokii.util.perf_timer_context import PerfTimerContext
 GEN_CONF_FILE_EXT = ".gen.py"
 
 
-class GenNodeParser:
+class NodeParser:
     def __init__(self, source_folder: str):
         """
         Reads and validates dataset configuration from filesystem structure.
@@ -25,7 +24,7 @@ class GenNodeParser:
 
     def parse(self) -> dict[str, GenRun]:
         with PerfTimerContext() as t:
-            gen_nodes = list(self.__parse_gen_nodes())
+            gen_nodes = list(self.__parse_nodes())
             self.gen_runs = {
                 GenRun.create_key(n.name, i): GenRun(n.name, n.version, i, r)
                 for n in gen_nodes
@@ -41,20 +40,7 @@ class GenNodeParser:
             logging.info("{} generation node parsed in {}".format(node_count, t))
         return self.gen_runs
 
-    def order(self):
-        dig = nx.DiGraph()
-        for run in self.gen_runs.values():
-            if not run.wait:
-                dig.add_node(run.run_key)
-            for dep in run.wait:
-                dig.add_edge(dep, run.run_key)
-
-        cycles = list(nx.simple_cycles(dig))
-        if len(cycles) != 0:
-            raise AssertionError(f"Found cyclic dependencies!\n{cycles}")
-        return list(nx.topological_sort(dig))
-
-    def __parse_gen_nodes(self) -> list[GenNodeModule] | None:
+    def __parse_nodes(self) -> list[GenNodeModule] | None:
         glob_path = path.join(self.root, f"**/*{GEN_CONF_FILE_EXT}")
         file_paths = [f for f in glob.glob(glob_path)]
 
@@ -78,12 +64,12 @@ class GenNodeParser:
 
             runs: list[GenRunConf] = []
             for i, r in enumerate(m.runs):
-                runs.append(self.__parse_gen_run(i, r, fp))
+                runs.append(self.__parse_run(i, r, fp))
 
             parsed.runs = runs
             yield parsed
 
-    def __parse_gen_run(self, i: int, r: GenRunConf, fp: str) -> GenRunConf:
+    def __parse_run(self, i: int, r: GenRunConf, fp: str) -> GenRunConf:
         assert "source" in r, f"runs[{i}][`source`] not found at {fp}"
         if not isinstance(r["source"], str):
             raise AssertionError(f"runs[{i}][`source`] must be str at {fp}")

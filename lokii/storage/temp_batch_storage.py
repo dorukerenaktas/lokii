@@ -5,20 +5,18 @@ TEMP_STORAGE_DIR = ".temp/data"
 
 
 class TempBatchStorage:
-    def __init__(self, node_name: str, target_count: int):
+    def __init__(self, node_name: str):
         """
         Temporary filesystem storage implementation for storing data generated between batches.
         It only stores data temporary and deletes all files after node generation completed.
         :param node_name: name of the node
-        :param target_count: target loop count for the node generation
         """
         if not os.path.exists(TEMP_STORAGE_DIR):
             os.makedirs(TEMP_STORAGE_DIR)
 
         self.node_name = node_name
-        self.target_count = target_count
-        self.item_count = 0
         self.batches: list[str] = []
+        self.item_count = 0
 
     def dump(self, batch_data: list[dict]) -> None:
         storage_key = self.node_name + str(len(self.batches))
