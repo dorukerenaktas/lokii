@@ -16,7 +16,7 @@ setup(
     keywords="boilerplate package",
     py_modules=["lokii"],
     entry_points={
-        "console_scripts": ["lokii=lokii.cli:execute_from_command_line"],
+        "console_scripts": ["lokii=lokii.cli:execute_command_line"],
     },
     url="http://path-to-my-packagename",
     install_requires=[

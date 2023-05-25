@@ -1,4 +1,4 @@
-from storage.temp_storage import TempStorage
+from lokii.storage.temp_storage import TempStorage
 
 
 def test_dump_should_save_to_temp_file_path_dir(mocker):

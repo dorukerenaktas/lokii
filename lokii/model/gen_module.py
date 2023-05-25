@@ -12,7 +12,6 @@ class GenRunConf(TypedDict):
 
     source: str | None
     wait: list[str] | None
-    rels: dict[str, str] | None
     func: Callable[[dict], dict]
 
 
@@ -30,10 +29,8 @@ class GenRun:
         self.run_key = GenRun.create_key(node_name, index)
 
         self.source = run_conf["source"]
-        self.wait = []
-        self.rels = run_conf["rels"]
         self.func = run_conf["func"]
-
+        self.wait = []
         if index > 0:
             self.wait.append(GenRun.create_key(node_name, index - 1))
         for dep in run_conf["wait"]:

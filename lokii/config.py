@@ -11,8 +11,6 @@ TEMP_DIR_PATH = os.environ.get("LOKII__TEMP_DIR_PATH", ".temp")
 TEMP_DB_FILE = os.environ.get("LOKII__TEMP_DB_FILE", "lokii.duckdb")
 # name of the temp data file that contains generated runtime files
 TEMP_DATA_DIR = os.environ.get("LOKII__TEMP_DATA_DIR", "data")
-# remove database after generation is completed
-TEMP_PURGE = os.environ.get("LOKII__TEMP_PURGE", "False")
 
 # file extension to look for when finding generation config files
 GEN_FILE_EXT = os.environ.get("LOKII__GEN_FILE_EXT", ".gen.py")
@@ -41,10 +39,6 @@ class __Config:
         @property
         def data_path(self) -> str:
             return os.path.join(TEMP_DIR_PATH, TEMP_DATA_DIR)
-
-        @property
-        def purge(self) -> bool:
-            return TEMP_PURGE != "False"
 
     class __GenConfig:
         """

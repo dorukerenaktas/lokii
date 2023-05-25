@@ -4,7 +4,7 @@ import shutil
 import uuid
 
 from lokii.config import CONFIG
-from lokii.logger import log_config
+from lokii.logger.context import LoggingContext
 from lokii.model.gen_module import GenRun
 from lokii.parse.node_parser import NodeParser
 from lokii.parse.graph_analyzer import GraphAnalyzer
@@ -29,12 +29,8 @@ class Lokii:
         self.__data_storage = DataStorage()
         self.__gen_parser = NodeParser(self.__source_folder)
 
-    def generate(self):
+    def generate(self, purge: bool = False):
         with PerfTimerContext() as t:
-            # create out folder if not exists
-            if not os.path.exists(self.__out_folder):
-                os.makedirs(self.__out_folder)
-
             gen_runs = self.__gen_parser.parse()
             analyzer = GraphAnalyzer(list(gen_runs.values()))
             run_exec_order = analyzer.execution_order()
@@ -60,7 +56,10 @@ class Lokii:
         logging.info("Generation completed!")
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
-        Lokii.clean_env()
+        # create out folder if not exists
+        if not os.path.exists(self.__out_folder):
+            os.makedirs(self.__out_folder)
+        Lokii.clean_env(purge)
 
     def generate_dataset(self, gen_run: GenRun) -> (int, int, list[str]):
         with PerfTimerContext() as t:
@@ -94,19 +93,13 @@ class Lokii:
 
     @staticmethod
     def setup_env():
-        Lokii.clean_env()
+        Lokii.clean_env(False)
         if not os.path.exists(CONFIG.temp.data_path):
             os.makedirs(CONFIG.temp.data_path)
 
     @staticmethod
     def clean_env(force: bool = False):
-        if (CONFIG.temp.purge or force) and os.path.exists(CONFIG.temp.dir_path):
+        if force and os.path.exists(CONFIG.temp.dir_path):
             shutil.rmtree(CONFIG.temp.dir_path)
         elif os.path.exists(CONFIG.temp.data_path):
             shutil.rmtree(CONFIG.temp.data_path)
-
-
-if __name__ == "__main__":
-    with log_config(verbose=logging.INFO):
-        tabular = Lokii("../example/classicmodels", "./data")
-        tabular.generate()

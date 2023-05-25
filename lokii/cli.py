@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from lokii import Lokii
-from lokii.logger import log_config
+from lokii.logger.context import LoggingContext
 from lokii.config import CONFIG
 
 LOKII_ASCII = r"""
@@ -21,7 +21,7 @@ LOKII_EPILOG = f""""""
 
 class Command:
     def __init__(self, argv: Optional[str] = None) -> None:
-        self.argv = argv or sys.argv[:]
+        self.argv = argv.split() if argv else sys.argv[:]
         self.prog_name = Path(self.argv[0]).name
 
     def execute(self) -> None:
@@ -57,8 +57,16 @@ class Command:
         )
 
         parser.add_argument(
+            "-l",
+            "--log-file",
+            action="store",
+            help="set the file path where the log file will be created",
+        )
+
+        parser.add_argument(
             "-f",
             "--source-folder",
+            action="store",
             metavar="PATH",
             default=".",
             type=str,
@@ -68,6 +76,7 @@ class Command:
         parser.add_argument(
             "-o",
             "--out-folder",
+            action="store",
             metavar="PATH",
             default="./data",
             type=str,
@@ -75,30 +84,10 @@ class Command:
         )
 
         parser.add_argument(
-            "--seed",
-            metavar="SEED",
-            type=int,
-            help="specify a seed for the random generator so "
-            "that results are repeatable. Also compatible "
-            "with 'repeat' option",
-        )
-
-        parser.add_argument(
-            "fake",
-            action="store",
-            nargs="?",
-            help="name of the fake to generate output for " "(e.g. profile)",
-        )
-
-        parser.add_argument(
-            "fake_args",
-            metavar="fake argument",
-            action="store",
-            nargs="*",
-            help="optional arguments to pass to the fake "
-            "(e.g. the profile fake takes an optional "
-            "list of comma separated field names as the "
-            "first argument)",
+            "-p",
+            "--purge",
+            action="store_true",
+            help="purge cache database after generation",
         )
 
         arguments = parser.parse_args(self.argv[1:])
@@ -107,22 +96,18 @@ class Command:
         if arguments.verbose:
             verbose = logging.DEBUG
         if arguments.quiet:
-            verbose = logging.CRITICAL
+            verbose = logging.ERROR
 
-        with log_config(verbose=verbose):
+        with LoggingContext(level=verbose, filename=arguments.log_file):
             try:
                 print(LOKII_ASCII)
                 lokii_gen = Lokii(arguments.source_folder, arguments.out_folder)
-                lokii_gen.generate()
+                lokii_gen.generate(arguments.purge)
             except Exception as err:
                 logging.critical(str(err), exc_info=True)
 
 
-def execute_from_command_line(argv: Optional[str] = None) -> None:
+def execute_command_line(argv: Optional[str] = None) -> None:
     """A simple method that runs a Command."""
     command = Command(argv)
     command.execute()
-
-
-if __name__ == "__main__":
-    execute_from_command_line()

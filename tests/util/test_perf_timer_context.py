@@ -1,6 +1,6 @@
 import time
 
-from util.perf_timer_context import PerfTimerContext
+from lokii.util.perf_timer_context import PerfTimerContext
 
 
 def test_timer_should_track_elapsed_time():

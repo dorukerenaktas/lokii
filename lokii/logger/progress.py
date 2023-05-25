@@ -7,7 +7,7 @@ from .color import style
 class ProgressLogger(StringIO):
     def __init__(self, total: float):
         super(ProgressLogger, self).__init__()
-        self.buf = None
+        self.total = total
         self.pbar = tqdm(
             total=total,
             bar_format="{bar} "
@@ -21,6 +21,5 @@ class ProgressLogger(StringIO):
 
     def update(self, count: float):
         self.pbar.update(count)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.pbar.close()
+        if count / self.total == 1:
+            self.pbar.close()

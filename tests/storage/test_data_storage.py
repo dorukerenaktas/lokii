@@ -1,21 +1,26 @@
 import os.path
 
-from config import CONFIG
-from storage.data_storage import DataStorage
-from storage.temp_storage import TempStorage
+import pytest
+
+from lokii.config import CONFIG
+from lokii.storage.data_storage import DataStorage
+from lokii.storage.temp_storage import TempStorage
 
 
+@pytest.mark.usefixtures("setup_test_env")
 def test_init_should_create_database_and_meta_table():
     storage = DataStorage()
     assert os.path.exists(CONFIG.temp.db_path)
     assert "__meta" in storage._conn.execute("SHOW TABLES;").fetchone()
 
 
+@pytest.mark.usefixtures("setup_test_env")
 def test_count_should_return_row_count_for_query_result():
     storage = DataStorage()
     assert storage.count("SELECT unnest([1, 2, 3])") == 3
 
 
+@pytest.mark.usefixtures("setup_test_env")
 def test_exec_should_return_query_result_for_given_page():
     storage = DataStorage()
     q = "SELECT * FROM range(0, 25)"
@@ -27,6 +32,7 @@ def test_exec_should_return_query_result_for_given_page():
     assert second_page[0]["range"] == 20
 
 
+@pytest.mark.usefixtures("setup_test_env")
 def test_save_should_insert_record_to_meta_table():
     storage = DataStorage()
     storage.save("test_gen1", "test_key1", "test_v1")
@@ -34,6 +40,7 @@ def test_save_should_insert_record_to_meta_table():
     assert len([r for r in records if "test_key1" in r]) == 1
 
 
+@pytest.mark.usefixtures("setup_test_env")
 def test_save_should_replace_record_with_same_key():
     storage = DataStorage()
     storage.save("test_gen1", "test_key1", "test_v1")
@@ -42,6 +49,7 @@ def test_save_should_replace_record_with_same_key():
     assert len([r for r in records if "test_key1" in r]) == 1
 
 
+@pytest.mark.usefixtures("setup_test_env")
 def test_meta_should_return_data_for_given_keys():
     storage = DataStorage()
     storage.save("test_gen1", "test_key1", "test_v1")
@@ -53,21 +61,25 @@ def test_meta_should_return_data_for_given_keys():
     assert len([d for d in deps if d["run_key"] == "test_key3"]) == 1
 
 
-def test_insert_should_create_schema_if_node_name_contain_dot():
-    _temp = TempStorage("schema1.node1")
+@pytest.mark.usefixtures("setup_test_env")
+@pytest.mark.parametrize("node, expect", [("s1.n2", "s1"), ("s2.n2", "s2")])
+def test_insert_should_create_schema_if_node_name_contain_dot(node, expect):
+    _temp = TempStorage(node)
     _temp.dump([{"data": i} for i in range(10)])
     storage = DataStorage()
-    storage.insert("schema1.node1", _temp.batches)
+    storage.insert(node, _temp.batches)
     res = storage._conn.execute(
-        f"SELECT * FROM information_schema.schemata WHERE schema_name = '{'schema1'}';"
+        f"SELECT * FROM information_schema.schemata WHERE schema_name = '{expect}';"
     ).fetchone()
-    assert "schema1" in res
+    assert expect in res
 
 
-def test_insert_should_create_table_from_generated_files():
-    _temp = TempStorage("schema1.node1")
-    _temp.dump([{"data": i} for i in range(10)])
-    _temp.dump([{"data": i} for i in range(10)])
+@pytest.mark.usefixtures("setup_test_env")
+@pytest.mark.parametrize("loop, expect", [([7], 7), ([12, 10, 7], 29)])
+def test_insert_should_create_table_from_generated_files(loop, expect):
+    _temp = TempStorage("n1")
+    for count in loop:
+        _temp.dump([{"data": i} for i in range(count)])
     storage = DataStorage()
-    storage.insert("schema1.node1", _temp.batches)
-    assert 20 in storage._conn.execute(f"SELECT COUNT() FROM schema1.node1;").fetchone()
+    storage.insert("n1", _temp.batches)
+    assert expect in storage._conn.execute(f"SELECT COUNT() FROM n1;").fetchone()

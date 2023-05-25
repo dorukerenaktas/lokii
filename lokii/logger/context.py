@@ -1,47 +1,49 @@
 import logging
 
+from lokii.logger.formatter import MultiFormatter
+
 
 class LoggingContext:
+    """
+    Use a logging configuration for a CLI application.
+    This will prettify log messages for the console, and show more info in a log file.
+    :param logger: the logger to configure. If None, configures the root logger
+    :param level:  sets the output verbosity
+    :param filename:  the file name of the log file to log to. If None, no log file is generated.
+    :return: a context manager that will configure the logger, and reset to the previous
+    configuration afterward.
+    """
+
     def __init__(
         self,
         logger: logging.Logger = None,
-        level: int = None,
-        handler: logging.Handler = None,
-        close: bool = True,
+        level: int = logging.INFO,
+        filename: str = None,
     ):
         self.logger = logger or logging.root
         self.level = level
-        self.handler = handler
-        self.close = close
+        self.old_level = self.logger.level
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(MultiFormatter())
+        console_handler.setLevel(self.level)
+        self.handlers = [console_handler]
+
+        if filename:
+            file_handler = logging.FileHandler(filename)
+            fmt = "%(levelname)s:%(asctime)s:%(name)s:%(message)s"
+            file_handler.setFormatter(logging.Formatter(fmt))
+            file_handler.setLevel(self.level)
+            self.handlers.append(file_handler)
 
     def __enter__(self):
-        if self.level is not None:
-            self.old_level = self.logger.level
-            self.logger.setLevel(self.level)
-
-        if self.handler:
-            self.logger.addHandler(self.handler)
+        # configure logger with given parameters
+        self.logger.setLevel(self.level)
+        for handler in self.handlers:
+            self.logger.addHandler(handler)
 
     def __exit__(self, *exc_info):
-        if self.level is not None:
-            self.logger.setLevel(self.old_level)
-
-        if self.handler:
-            self.logger.removeHandler(self.handler)
-
-        if self.handler and self.close:
-            self.handler.close()
-
-
-class MultiContext:
-    """Can be used to dynamically combine context managers"""
-
-    def __init__(self, *contexts) -> None:
-        self.contexts = contexts
-
-    def __enter__(self):
-        return tuple(ctx.__enter__() for ctx in self.contexts)
-
-    def __exit__(self, *exc_info):
-        for ctx in self.contexts:
-            ctx.__exit__(*exc_info)
+        # revert back to old logger configuration
+        self.logger.setLevel(self.old_level)
+        for handler in self.handlers:
+            self.logger.removeHandler(handler)

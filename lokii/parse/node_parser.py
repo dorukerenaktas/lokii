@@ -76,10 +76,6 @@ class NodeParser:
             r["wait"] = []
         elif not isinstance(r["wait"], list):
             raise AssertionError(f"runs[{i}][`wait`] must be list at {fp}")
-        if "rels" not in r:
-            r["rels"] = {}
-        elif not isinstance(r["rels"], dict):
-            raise AssertionError(f"runs[{i}][`rels`] must be dict at {fp}")
         if "func" not in r:
             raise AssertionError(f"runs[{i}][`func`] not found at {fp}")
         elif not inspect.isfunction(r["func"]):
