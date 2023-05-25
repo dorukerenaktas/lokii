@@ -1,7 +1,5 @@
-import os
-from typing import TypedDict
-
 import duckdb
+from typing import TypedDict
 
 from lokii.config import CONFIG
 
@@ -25,17 +23,6 @@ class DataStorage:
             "(run_key TEXT, version TEXT, gen_id TEXT, PRIMARY KEY(run_key));"
         )
         self._conn.execute(q).fetchall()
-
-    def meta(self, run_keys: list[str]) -> list[NodeMetadata]:
-        """
-        Fetches generation metadata information about given runs.
-        :param run_keys: list of run ids
-        :return: list of node meta dict
-        """
-        keys = ",".join([f"'{k}'" for k in run_keys])
-        q = f"SELECT run_key, version, gen_id FROM main.__meta WHERE run_key IN ({keys});"
-        data = self._conn.execute(q).df()
-        return data.to_dict("records")
 
     def count(self, query: str) -> int:
         q = f"WITH _t AS ({query}) SELECT COUNT() FROM _t;"
@@ -61,6 +48,17 @@ class DataStorage:
         VALUES ('{run_key}', '{version}', '{gen_id}');
         """
         self._conn.execute(q).fetchall()
+
+    def meta(self, run_keys: list[str]) -> list[NodeMetadata]:
+        """
+        Fetches generation metadata information about given runs.
+        :param run_keys: list of run ids
+        :return: list of node meta dict
+        """
+        keys = ",".join([f"'{k}'" for k in run_keys])
+        q = f"SELECT run_key, version, gen_id FROM main.__meta WHERE run_key IN ({keys});"
+        data = self._conn.execute(q).df()
+        return data.to_dict("records")
 
     def insert(self, name: str, files: list[str]) -> None:
         """
