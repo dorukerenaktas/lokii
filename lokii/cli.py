@@ -107,7 +107,7 @@ class Command:
                 logging.critical(str(err), exc_info=True)
 
 
-def execute_command_line(argv: Optional[str] = None) -> None:
+def exec_cmd(argv: Optional[str] = None) -> None:
     """A simple method that runs a Command."""
     command = Command(argv)
     command.execute()

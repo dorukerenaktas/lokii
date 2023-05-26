@@ -53,12 +53,14 @@ class NodeParser:
             assert isinstance(m.runs, list), f"`runs` must be list at {fp}"
             assert len(m.runs) > 0, f"`runs` has no items at {fp}"
 
-            parsed = GenNodeModule()
-            parsed.name = path.basename(fp).replace(CONFIG.gen.file_ext, "")
-            parsed.version = loader.version
-            if hasattr(m, "name"):
+            parsed = GenNodeModule(
+                loader.module.runs,
+                path.basename(fp).replace(CONFIG.gen.file_ext, ""),
+                loader.version,
+            )
+            if hasattr(m, "name") and m.name is not None:
                 parsed.name = m.name
-            if hasattr(m, "version"):
+            if hasattr(m, "version") and m.version is not None:
                 parsed.version = m.version
 
             runs: list[GenRunConf] = []
@@ -76,7 +78,7 @@ class NodeParser:
             r["wait"] = []
         elif not isinstance(r["wait"], list):
             raise AssertionError(f"runs[{i}][`wait`] must be list at {fp}")
-        if "func" not in r:
+        if "func" not in r or r["func"] is None:
             raise AssertionError(f"runs[{i}][`func`] not found at {fp}")
         elif not inspect.isfunction(r["func"]):
             raise AssertionError(f"runs[{i}][`func`] must be function at {fp}")

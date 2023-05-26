@@ -1,22 +1,37 @@
-from typing import Callable
-
 import pytest
+from unittest.mock import Mock
 
 from lokii import Lokii
-from model.gen_module import GenRun
 
 
-def gen_func(args) -> dict:
-    return args
+@pytest.fixture
+def found_mods(mocker, request):
+    gen_files = request.param or []
+    gen_files = [m if ".gen.py" in m else f"{m}.gen.py" for m in gen_files]
+    mocker.patch("glob.glob", return_value=gen_files)
+    return gen_files
 
 
-def mock_gen_conf(s="", w: list[str] = None, f: Callable = None):
-    func: Callable[[dict], dict] = f or gen_func
-    return {"source": s, "wait": w or [], "func": func}
+@pytest.fixture
+def loaded_mods(mocker, found_mods, request):
+    def module_file_loader_side_effect(file_path: str):
+        mods = request.param or []
+        mod_i = found_mods.index(file_path)
+        if mods[mod_i].runs and isinstance(mods[mod_i].runs, list):
+            mods[mod_i].runs = [
+                {"source": "SELECT * FROM range(100)", "func": lambda x: x, **run}
+                for run in mods[mod_i].runs
+            ]
+        loader = {
+            "load": Mock(),
+            "module": mods[mod_i],
+            "version": mods[mod_i].version or "v1",
+        }
+        return type("ModuleFileLoader", (object,), loader or {})()
 
-
-def mock_gen_run(n="", v="", i=0, s="", w: list[str] = None, f: Callable = None):
-    return GenRun(n, v, i, mock_gen_conf(s, w, f))
+    mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
+    mock.side_effect = module_file_loader_side_effect
+    return request.param or []
 
 
 @pytest.fixture

@@ -1,24 +1,33 @@
 from __future__ import annotations
 
 from typing import TypedDict, Callable
+from typing_extensions import NotRequired
 
 GenFunc = Callable[[dict], dict]
 
 
 class GenRunConf(TypedDict):
     """
-    :var source: Source SQL statement
+    Generation run configuration that defines how dataset should be generated.
+    :var source: source SQL statement
+    :var wait: list of dependent runs
+    :var func: generation function
     """
 
-    source: str | None
-    wait: list[str] | None
-    func: Callable[[dict], dict]
+    source: str
+    wait: NotRequired[list[str]]
+    func: Callable
 
 
 class GenNodeModule:
     name: str | None
     version: str | None
     runs: list[GenRunConf]
+
+    def __init__(self, runs: list[GenRunConf], name: str = None, version: str = None):
+        self.runs = runs
+        self.name = name
+        self.version = version
 
 
 class GenRun:

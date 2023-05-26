@@ -1,5 +1,9 @@
 <img src="docs/assets/loki-logo.png" width="200" height="100" alt="Loki Logo" />
 
+[![PyPI version](https://badge.fury.io/py/lokii.svg)](https://badge.fury.io/py/lokii)
+[![Downloads](https://static.pepy.tech/personalized-badge/lokii?period=month&units=international_system&left_color=grey&right_color=brightgreen&left_text=Downloads)](https://pepy.tech/project/lokii)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Generate fake datasets with ease.
 
 ## Dataset Configuration

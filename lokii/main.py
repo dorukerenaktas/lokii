@@ -4,7 +4,6 @@ import shutil
 import uuid
 
 from lokii.config import CONFIG
-from lokii.logger.context import LoggingContext
 from lokii.model.gen_module import GenRun
 from lokii.parse.node_parser import NodeParser
 from lokii.parse.graph_analyzer import GraphAnalyzer
@@ -56,9 +55,7 @@ class Lokii:
         logging.info("Generation completed!")
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
-        # create out folder if not exists
-        if not os.path.exists(self.__out_folder):
-            os.makedirs(self.__out_folder)
+        self.__data_storage.export(self.__out_folder, "csv")
         Lokii.clean_env(purge)
 
     def generate_dataset(self, gen_run: GenRun) -> (int, int, list[str]):

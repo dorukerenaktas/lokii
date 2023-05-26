@@ -1,4 +1,4 @@
 if __name__ == "__main__":
-    from lokii.cli import execute_command_line
+    from lokii.cli import exec_cmd
 
-    execute_command_line()
+    exec_cmd()

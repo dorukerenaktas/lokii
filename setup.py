@@ -16,9 +16,10 @@ setup(
     keywords="boilerplate package",
     py_modules=["lokii"],
     entry_points={
-        "console_scripts": ["lokii=lokii.cli:execute_command_line"],
+        "console_scripts": ["lokii=lokii.cli:exec_cmd"],
     },
     url="http://path-to-my-packagename",
+    data_files=[("", ["VERSION"])],
     install_requires=[
         "pandas~=2.0.1",
         "pathos~=0.3.0",
