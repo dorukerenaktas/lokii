@@ -1,4 +1,7 @@
 -i https://pypi.org/simple
-pandas~=1.2.2
-pathos~=0.2.7
-typing~=3.7.4.3
+typing
+pandas~=2.0.1
+pathos~=0.3.0
+networkx~=3.1
+tqdm~=4.65.0
+duckdb~=0.8.0
