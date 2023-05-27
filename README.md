@@ -1,10 +1,24 @@
-<img src="docs/assets/loki-logo.png" width="200" height="100" alt="Loki Logo" />
+<pre style="padding:0;background-color:transparent;white-space:pre;font-family:monospace,-webkit-pictograph;line-height:1.1;">
+▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄
+█   █   █       █   █ █ █   █   █
+█   █   █   ▄   █   █▄█ █   █   █
+█   █   █  █ █  █      ▄█   █   █
+█   █▄▄▄█  █▄█  █     █▄█   █   █
+█       █       █    ▄  █   █   █
+█▄▄▄▄▄▄▄█▄▄▄▄▄▄▄█▄▄▄█ █▄█▄▄▄█▄▄▄█ 
+</pre>
 
-[![PyPI version](https://badge.fury.io/py/lokii.svg)](https://badge.fury.io/py/lokii)
-[![Downloads](https://static.pepy.tech/personalized-badge/lokii?period=month&units=international_system&left_color=grey&right_color=brightgreen&left_text=Downloads)](https://pepy.tech/project/lokii)
+![PyPI](https://img.shields.io/pypi/v/lokii)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/lokii)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dorukerenaktas/lokii/python-app.yml)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/dorukerenaktas/lokii)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Licence](https://img.shields.io/pypi/l/lokii.svg)](https://github.com/dorukerenaktas/lokii)
 
-Generate fake datasets with ease.
+Lokii is a powerful package that enables the generation of relational datasets, specifically designed to facilitate
+the creation of robust development environments. With lokii, you can effortlessly generate diverse datasets that
+mimic real-world scenarios, allowing for comprehensive end-to-end testing of your applications.
+
 
 ## Dataset Configuration
 

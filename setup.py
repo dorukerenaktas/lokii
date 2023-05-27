@@ -14,6 +14,7 @@ setup(
     packages=find_packages(where="."),
     description="Generate, Load, Develop and Test with consistent relational datasets!",
     long_description=README,
+    long_description_content_type="text/markdown",
     keywords="data generation, relational datasets, development environment, testing, database",
     classifiers=[
         "Development Status :: 4 - Beta",
