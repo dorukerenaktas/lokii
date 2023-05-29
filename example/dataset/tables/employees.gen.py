@@ -4,14 +4,14 @@ fake = Faker()
 
 
 def gen(args):
-    (i, params) = (args[k] for k in ["index", "params"])
+    officeCode = args["params"]["officeCode"]
     return {
-        "employeeNumber": i,
+        "employeeNumber": args["id"],
         "firstName": fake.first_name(),
         "lastName": fake.last_name(),
         "extension": fake.random_number(digits=2),
         "email": fake.email(),
-        "officeCode": params['officeCode'],
+        "officeCode": officeCode,
         "reportsTo": fake.random_int(min=1, max=10000),
         "jobTitle": fake.job(),
     }
@@ -19,6 +19,7 @@ def gen(args):
 
 runs = [
     {
+        # create 3 manager and 3 employee for each office
         "source": """
         SELECT i.range, t, o.officeCode FROM offices o
         CROSS JOIN unnest(['manager', 'employee']) as data(t)

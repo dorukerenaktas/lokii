@@ -1,6 +1,6 @@
 import pytest
 
-from model.gen_module import GenRun, GenRunConf
+from lokii.model.node_module import GenRun, GenRunConf
 from lokii.parse.graph_analyzer import GraphAnalyzer
 
 conf: GenRunConf = {"source": "SELECT 1", "wait": [], "func": lambda x: x}

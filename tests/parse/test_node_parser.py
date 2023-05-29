@@ -1,6 +1,7 @@
+import os
 import pytest
 
-from lokii.model.gen_module import GenRun, GenNodeModule as Gm
+from lokii.model.node_module import GenRun, GenNodeModule as Gm
 from lokii.parse.node_parser import NodeParser
 
 # noinspection SpellCheckingInspection
@@ -58,6 +59,19 @@ def test_parse_should_use_version_instead_of_file_hash(found_mods, loaded_mods):
 
 # noinspection SpellCheckingInspection, PyTestParametrized, PyTypeChecker
 @pytest.mark.parametrize(
+    "found_mods, loaded_mods", [(["/path/g1/g2/t1"], [Gm([{}])])], indirect=True
+)
+def test_parse_should_use_file_path_if_groups_not_provided(found_mods, loaded_mods):
+    parser = NodeParser("/path")
+    parser.parse()
+    for i, module_path in enumerate(found_mods):
+        node_name = os.path.basename(module_path).replace(".gen.py", "")
+        assert "g1" in parser.nodes[node_name].groups
+        assert "g2" in parser.nodes[node_name].groups
+
+
+# noinspection SpellCheckingInspection, PyTestParametrized, PyTypeChecker
+@pytest.mark.parametrize(
     "found_mods, loaded_mods", [(["t1"], [Gm([{}, {}])])], indirect=True
 )
 def test_parse_should_wait_its_own_previous_runs(found_mods, loaded_mods):
@@ -84,7 +98,7 @@ def test_parse_should_wait_its_own_previous_runs(found_mods, loaded_mods):
         ([Gm([{"wait": ""}])], "[`wait`] must be list"),
         ([Gm([{"func": None}])], "[`func`] not found"),
         ([Gm([{"func": ""}])], "[`func`] must be function"),
-        ([Gm([{"func": lambda x, y: x}])], "[`func`] must accept only one"),
+        ([Gm([{"func": lambda x, y: x}])], "[`func`] accepts only one param"),
     ],
     indirect=["loaded_mods"],
 )

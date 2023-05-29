@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 import os
 
-from lokii.model.gen_module import GenRun, GenRunConf
+from lokii.model.node_module import GenRun, GenRunConf
 from lokii.storage.data_storage import DataStorage
 from lokii.exec.gen_executor import GenExecutor, _exec_chunk
 

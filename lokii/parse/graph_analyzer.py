@@ -1,6 +1,6 @@
 import networkx as nx
 
-from lokii.model.gen_module import GenRun
+from lokii.model.node_module import GenRun
 
 
 class GraphAnalyzer:

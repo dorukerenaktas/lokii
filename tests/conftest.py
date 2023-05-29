@@ -1,22 +1,30 @@
+import os
+
 import pytest
 from unittest.mock import Mock
 
 from lokii import Lokii
+from parse.node_parser import NODE_RESOLVER
 
 
 @pytest.fixture
 def found_mods(mocker, request):
     gen_files = request.param or []
     gen_files = [m if ".gen.py" in m else f"{m}.gen.py" for m in gen_files]
-    mocker.patch("glob.glob", return_value=gen_files)
-    return gen_files
+    mocker.patch(
+        "glob.glob",
+        lambda p: [os.path.join(p.replace(NODE_RESOLVER, ""), f) for f in gen_files],
+    )
+
+    node_names = [os.path.basename(m).replace(".gen.py", "") for m in gen_files]
+    return node_names
 
 
 @pytest.fixture
 def loaded_mods(mocker, found_mods, request):
     def module_file_loader_side_effect(file_path: str):
         mods = request.param or []
-        mod_i = found_mods.index(file_path)
+        mod_i = found_mods.index(os.path.basename(file_path).replace(".gen.py", ""))
         if mods[mod_i].runs and isinstance(mods[mod_i].runs, list):
             mods[mod_i].runs = [
                 {"source": "SELECT * FROM range(100)", "func": lambda x: x, **run}
@@ -32,19 +40,6 @@ def loaded_mods(mocker, found_mods, request):
     mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
     mock.side_effect = module_file_loader_side_effect
     return request.param or []
-
-
-@pytest.fixture
-def mock_module_loader(mocker):
-    def patch(files: list[str] = None, node: dict = None) -> None:
-        mocker.patch("glob.glob", return_value=files or [])
-        mocker.patch("inspect.getsource", return_value="string code content")
-        m = type("GenNodeModule", (object,), node or {})()
-        mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
-        mock.return_value.module = m
-        mock.return_value.version = m.version if hasattr(m, "version") else "v1"
-
-    return patch
 
 
 @pytest.fixture(scope="function")

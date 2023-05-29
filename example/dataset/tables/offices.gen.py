@@ -4,13 +4,13 @@ fake = Faker()
 
 
 def gen(args):
-    (i,) = (args[k] for k in ["index"])
+    address = fake.address().split("\n")
     return {
-        "officeCode": i,
+        "officeCode": args["id"],
         "city": fake.city(),
         "phone": fake.phone_number(),
-        "addressLine1": fake.address(),
-        "addressLine2": None,
+        "addressLine1": address[0],
+        "addressLine2": address[1],
         "state": fake.city(),
         "country": fake.country(),
         "postalCode": fake.postcode(),
@@ -20,7 +20,7 @@ def gen(args):
 
 runs = [
     {
-        "source": "SELECT * FROM range(10000)",
+        "source": "SELECT * FROM range(10)",
         "func": gen,
     }
 ]

@@ -7,7 +7,7 @@ from io import StringIO
 from config import CONFIG
 from lokii import Lokii
 from lokii.cli import exec_cmd, LOKII_ASCII
-from lokii.model.gen_module import GenNodeModule as Gm
+from lokii.model.node_module import GenNodeModule as Gm
 
 
 def test_exec_cmd_should_print_help(mocker):

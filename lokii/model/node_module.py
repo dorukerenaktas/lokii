@@ -1,33 +1,37 @@
-from __future__ import annotations
-
 from typing import TypedDict, Callable
-from typing_extensions import NotRequired
 
 GenFunc = Callable[[dict], dict]
 
-
-class GenRunConf(TypedDict):
-    """
-    Generation run configuration that defines how dataset should be generated.
-    :var source: source SQL statement
-    :var wait: list of dependent runs
-    :var func: generation function
-    """
-
-    source: str
-    wait: NotRequired[list[str]]
-    func: Callable
+GenRunConf = TypedDict(
+    "GenRunConf", {"source": str, "wait": list[str], "func": Callable}
+)
 
 
 class GenNodeModule:
-    name: str | None
-    version: str | None
-    runs: list[GenRunConf]
+    """
+    Module specification that defines node generation configuration.
 
-    def __init__(self, runs: list[GenRunConf], name: str = None, version: str = None):
+    :var runs: Generation run configurations of the node
+    :type runs: list[GenRunConf]
+    :var name: Name of the node
+    :type name: str
+    :var version: Code version of the node
+    :type version: str
+    :var groups: Groups that the node belongs
+    :type groups: list[str]
+    """
+
+    def __init__(
+        self,
+        runs: list[GenRunConf],
+        name: str = None,
+        version: str = None,
+        groups: list[str] = None,
+    ):
         self.runs = runs
         self.name = name
         self.version = version
+        self.groups = groups or []
 
 
 class GenRun:

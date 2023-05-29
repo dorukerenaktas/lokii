@@ -7,7 +7,7 @@ from pathos.pools import ProcessPool
 
 from lokii.config import CONFIG
 from lokii.logger.progress import ProgressLogger
-from lokii.model.gen_module import GenRun
+from lokii.model.node_module import GenRun
 from lokii.storage.data_storage import DataStorage
 from lokii.storage.temp_storage import TempStorage
 

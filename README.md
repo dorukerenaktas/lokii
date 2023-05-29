@@ -1,12 +1,4 @@
-<pre style="padding:0;background-color:transparent;white-space:pre;font-family:monospace,-webkit-pictograph;line-height:1.1;">
-▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄
-█   █   █       █   █ █ █   █   █
-█   █   █   ▄   █   █▄█ █   █   █
-█   █   █  █ █  █      ▄█   █   █
-█   █▄▄▄█  █▄█  █     █▄█   █   █
-█       █       █    ▄  █   █   █
-█▄▄▄▄▄▄▄█▄▄▄▄▄▄▄█▄▄▄█ █▄█▄▄▄█▄▄▄█ 
-</pre>
+![lokii-logo](https://github.com/dorukerenaktas/lokii/assets/20422563/fe774eba-ddd0-4bad-a093-553bb980f54c)
 
 ![PyPI](https://img.shields.io/pypi/v/lokii)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/lokii)
@@ -20,24 +12,61 @@ the creation of robust development environments. With lokii, you can effortlessl
 mimic real-world scenarios, allowing for comprehensive end-to-end testing of your applications.
 
 
-## Dataset Configuration
+## Create a generation project
 
-Define a dataset by using folder and special files. Specify schemas using `schema_name` folders, configure generation
-parameters using `table_name.json` and write generation scripts to `table_name.py`.
+Generation project stores node generation configuration files. Every file with `.gen.py` is considered as a node.
+You can group nodes with nesting, but it is optional.
 
+> If your dataset is for a relational database, you can think of each node as defining a table.
+
+```shell
+# example project directory structure
+
+proj_dir
+    ├── group_1
+    │   ├── node_1.gen.py
+    │   └── node_2.gen.py
+    ├── group_2
+    │   ├── node_3.gen.py
+    │   └── node_4.gen.py
+    ├── node_5.gen.py
+    └── node_6.gen.py
 ```
-root_folder
-    ├── schema_1
-    │   ├── table_1.json
-    │   ├── table_1.py
-    │   ├── table_2.json
-    │   └── table_2.py
-    └── schema_2
-        ├── table_3.json
-        ├── table_3.py
-        ├── table_4.json
-        └── table_4.py
+
+
+```python
+from faker import Faker
+
+fake = Faker()
+
+
+def gen(args):
+    address = fake.address().split("\n")
+    return {
+        "officeCode": args["id"],
+        "city": fake.city(),
+        "phone": fake.phone_number(),
+        "addressLine1": address[0],
+        "addressLine2": address[1],
+        "state": fake.city(),
+        "country": fake.country(),
+        "postalCode": fake.postcode(),
+        "territory": fake.administrative_unit(),
+    }
+
+
+runs = [
+    {
+        "source": "SELECT * FROM range(10)",
+        "func": gen,
+    }
+]
 ```
+
+Define a dataset node by using folder and special files. Specify schemas or groups using `schema_name` folders,
+configure generation parameters using generation scripts to `table_name.gen.py`.
+
+
 
 ### Schema Folders
 

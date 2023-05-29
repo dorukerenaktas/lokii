@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
-from pathlib import Path
-
+from os import path
 from setuptools import setup, find_packages
 
-root = Path(__file__).resolve().parent
-VERSION = (root / "VERSION").read_text(encoding="utf-8").strip()
-README = (root / "README.md").read_text(encoding="utf-8")
+root = path.dirname(__file__)
+f = open(path.join(root, "VERSION"), "r")
+VERSION = f.read().strip()
+f.close()
+f = open(path.join(root, "README.md"), "r")
+README = f.read().strip()
+f.close()
 
 setup(
     name="lokii",
@@ -35,7 +38,6 @@ setup(
     ],
     author="Doruk Eren Aktaş",
     author_email="dorukerenaktas@gmail.com",
-    py_modules=["lokii"],
     entry_points={
         "console_scripts": ["lokii=lokii.cli:exec_cmd"],
     },

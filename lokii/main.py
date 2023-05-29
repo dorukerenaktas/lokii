@@ -4,7 +4,7 @@ import shutil
 import uuid
 
 from lokii.config import CONFIG
-from lokii.model.gen_module import GenRun
+from lokii.model.node_module import GenRun
 from lokii.parse.node_parser import NodeParser
 from lokii.parse.graph_analyzer import GraphAnalyzer
 from lokii.storage.data_storage import DataStorage
