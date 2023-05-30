@@ -4,12 +4,10 @@ from os import path
 from setuptools import setup, find_packages
 
 root = path.dirname(__file__)
-f = open(path.join(root, "VERSION"), "r")
-VERSION = f.read().strip()
-f.close()
-f = open(path.join(root, "README.md"), "r")
-README = f.read().strip()
-f.close()
+with open(path.join(root, "VERSION"), "r") as f:
+    VERSION = f.read().strip()
+with open(path.join(root, "README.md"), "r") as f:
+    README = f.read().strip()
 
 setup(
     name="lokii",
@@ -46,7 +44,6 @@ setup(
     install_requires=[
         "pandas==2.0.1",
         "pathos==0.3.0",
-        "networkx==3.1",
         "tqdm==4.65.0",
         "duckdb==0.8.0",
         "typing==3.7.4.3",

@@ -1,6 +1,6 @@
 import pytest
 
-from lokii.parse.graph_analyzer import GraphAnalyzer
+from util.graph_analyzer import GraphAnalyzer
 
 
 def test_dependencies_should_return_correct_run_ids():

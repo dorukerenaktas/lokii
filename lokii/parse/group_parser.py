@@ -1,17 +1,17 @@
 import logging
 import glob
-import inspect
 from os import path
 
 from lokii.config import CONFIG
 from lokii.model.group_module import GroupModule
 from lokii.util.module_file_loader import ModuleFileLoader
 from lokii.util.perf_timer_context import PerfTimerContext
+from lokii.parse.base_parser import BaseParser
 
 GROUP_RESOLVER = "**/*%s" % CONFIG.gen.group_ext
 
 
-class GroupParser:
+class GroupParser(BaseParser):
     """
     Reads and validates group export configurations from filesystem structure.
 
@@ -58,33 +58,22 @@ class GroupParser:
         for fp in file_paths:
             loader = ModuleFileLoader(fp)
             loader.load()
-            module = loader.module
+            mod = loader.module
 
             m_name = path.dirname(fp).split(path.sep)[-1]
             parsed = GroupModule(m_name)
 
             # ensure group configuration is valid
-            AE = AssertionError
-            if hasattr(module, "before"):
-                if not inspect.isfunction(module.before):
-                    raise AE("`before` must be function at %s" % fp)
-                elif len(inspect.signature(module.before).parameters) != 1:
-                    raise AE("`before` accepts only one param at %s" % fp)
-                else:
-                    parsed.before = module.before
-            if hasattr(module, "export"):
-                if not inspect.isfunction(module.export):
-                    raise AE("`export` must be function at %s" % fp)
-                elif len(inspect.signature(module.export).parameters) != 1:
-                    raise AE("`export` accepts only one param at %s" % fp)
-                else:
-                    parsed.export = module.export
-            if hasattr(module, "after"):
-                if not inspect.isfunction(module.after):
-                    raise AE("`after` must be function at %s" % fp)
-                elif len(inspect.signature(module.after).parameters) != 1:
-                    raise AE("`after` accepts only one param at %s" % fp)
-                else:
-                    parsed.after = module.after
-
+            if self.attr(mod, "before"):
+                self.func(mod.before, "`before` must be function at %s" % fp)
+                self.sig(mod.before, 1, "`before` accepts only one param at %s" % fp)
+                parsed.before = mod.before
+            if self.attr(mod, "export"):
+                self.func(mod.export, "`export` must be function at %s" % fp)
+                self.sig(mod.export, 1, "`export` accepts only one param at %s" % fp)
+                parsed.export = mod.export
+            if self.attr(mod, "after"):
+                self.func(mod.after, "`after` must be function at %s" % fp)
+                self.sig(mod.after, 1, "`after` accepts only one param at %s" % fp)
+                parsed.export = mod.after
             yield parsed

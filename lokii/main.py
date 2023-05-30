@@ -5,7 +5,7 @@ import uuid
 
 from lokii.config import CONFIG
 from lokii.parse.node_parser import NodeParser
-from lokii.parse.graph_analyzer import GraphAnalyzer
+from lokii.util.graph_analyzer import GraphAnalyzer
 from lokii.storage.data_storage import DataStorage
 from lokii.exec.node_executor import NodeExecutor
 from lokii.util.perf_timer_context import PerfTimerContext
