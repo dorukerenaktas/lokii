@@ -1,30 +1,64 @@
-import networkx as nx
-
-from lokii.model.node_module import GenRun
+from collections import defaultdict
 
 
 class GraphAnalyzer:
-    def __init__(self, gen_runs: list[GenRun]):
+    def __init__(self, nodes: list[(str, list[str])]):
         """
         Reads and validates dataset configuration from filesystem structure.
 
-        :param gen_runs: root path of the dataset generation schema
+        :param nodes: root path of the dataset generation schema
         """
-        self.gen_runs = gen_runs
+        self.graph = defaultdict(list)
+        self.nodes = []
+        for node, deps in nodes:
+            self.nodes.append(node)
+            self.graph[node].extend(deps)
 
-        # initialize directed graph
-        self.run_dig = nx.DiGraph()
-        for run in self.gen_runs:
-            if not run.wait:
-                self.run_dig.add_node(run.run_key)
-            for dep in run.wait:
-                self.run_dig.add_edge(dep, run.run_key)
+    def __cycle(self, index, node, visited, stack):
+        visited[index] = True
+        stack[index] = True
 
-    def dependencies(self, run_key: str) -> list[str]:
-        return list(nx.ancestors(self.run_dig, run_key))
+        for neighbour in self.graph[node]:
+            n_index = self.nodes.index(neighbour)
+            if not visited[n_index]:
+                if self.__cycle(n_index, neighbour, visited, stack):
+                    return True
+            elif stack[n_index]:
+                return True
+        stack[index] = False
+        return False
+
+    def check_cyclic(self):
+        length = len(self.nodes) + 1
+        visited = [False] * length
+        stack = [False] * length
+        for index, node in enumerate(self.nodes):
+            if not visited[index] and self.__cycle(index, node, visited, stack):
+                raise AssertionError("Found cyclic dependencies!\n%s" % node)
+
+    def __sort(self, index, node, visited, stack):
+        visited[index] = True
+        for element in self.graph[node]:
+            e_index = self.nodes.index(element)
+            if not visited[e_index]:
+                self.__sort(e_index, element, visited, stack)
+        stack.insert(0, node)
+
+    def topological_sort(self):
+        stack = []
+        visited = [False] * len(self.nodes)
+        for index, node in enumerate(self.nodes):
+            if not visited[index]:
+                self.__sort(index, node, visited, stack)
+        return stack[::-1]
+
+    def dependencies(self, name: str) -> list[str]:
+        stack = []
+        visited = [False] * len(self.nodes)
+        index = self.nodes.index(name)
+        self.__sort(index, name, visited, stack)
+        return stack[::-1]
 
     def execution_order(self) -> list[str]:
-        cycles = list(nx.simple_cycles(self.run_dig))
-        if len(cycles) != 0:
-            raise AssertionError("Found cyclic dependencies!\n%s" % cycles)
-        return list(nx.topological_sort(self.run_dig))
+        self.check_cyclic()
+        return self.topological_sort()

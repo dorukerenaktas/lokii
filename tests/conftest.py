@@ -1,39 +1,28 @@
 import os
-
 import pytest
 from unittest.mock import Mock
 
 from lokii import Lokii
-from parse.node_parser import NODE_RESOLVER
 
 
 @pytest.fixture
-def found_mods(mocker, request):
+def m_paths(mocker, request):
     gen_files = request.param or []
-    gen_files = [m if ".gen.py" in m else f"{m}.gen.py" for m in gen_files]
-    mocker.patch(
-        "glob.glob",
-        lambda p: [os.path.join(p.replace(NODE_RESOLVER, ""), f) for f in gen_files],
-    )
+    mocker.patch("glob.glob", return_value=gen_files)
 
     node_names = [os.path.basename(m).replace(".gen.py", "") for m in gen_files]
     return node_names
 
 
 @pytest.fixture
-def loaded_mods(mocker, found_mods, request):
+def m_nodes(mocker, m_paths, request):
     def module_file_loader_side_effect(file_path: str):
         mods = request.param or []
-        mod_i = found_mods.index(os.path.basename(file_path).replace(".gen.py", ""))
-        if mods[mod_i].runs and isinstance(mods[mod_i].runs, list):
-            mods[mod_i].runs = [
-                {"source": "SELECT * FROM range(100)", "func": lambda x: x, **run}
-                for run in mods[mod_i].runs
-            ]
+        mod_i = m_paths.index(os.path.basename(file_path).replace(".gen.py", ""))
         loader = {
             "load": Mock(),
-            "module": mods[mod_i],
-            "version": mods[mod_i].version or "v1",
+            "module": type("obj", (object,), mods[mod_i]),
+            "version": mods[mod_i]["version"] if "version" in mods[mod_i] else "v1",
         }
         return type("ModuleFileLoader", (object,), loader or {})()
 

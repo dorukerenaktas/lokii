@@ -18,7 +18,7 @@ LOKII_ASCII = r"""
 
 
 class Command:
-    def __init__(self, argv) -> None:
+    def __init__(self, argv=None) -> None:
         self.argv = argv.split() if argv else sys.argv[:]
         self.prog_name = "lokii"
 
@@ -37,7 +37,7 @@ class Command:
         )
 
         parser.add_argument(
-            "--version", action="version", version="%(prog)s %s".format(CONFIG.version)
+            "--version", action="version", version="%(prog)s " + CONFIG.version
         )
 
         parser.add_argument(
@@ -105,7 +105,7 @@ class Command:
                 logging.critical(str(err), exc_info=True)
 
 
-def exec_cmd(argv) -> None:
+def exec_cmd(argv=None) -> None:
     """A simple method that runs a Command."""
     command = Command(argv)
     command.execute()

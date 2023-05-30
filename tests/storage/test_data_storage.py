@@ -56,13 +56,13 @@ def test_save_should_replace_record_with_same_key():
 @pytest.mark.usefixtures("setup_test_env")
 def test_meta_should_return_data_for_given_keys():
     storage = DataStorage()
-    storage.save("test_gen1", "test_key1", "test_v1")
-    storage.save("test_gen1", "test_key2", "test_v1")
-    storage.save("test_gen2", "test_key3", "test_v4")
-    deps = storage.meta(["test_key2", "test_key3"])
+    storage.save("test_gen1", "test_node1", "test_v1")
+    storage.save("test_gen1", "test_node2", "test_v1")
+    storage.save("test_gen2", "test_node3", "test_v4")
+    deps = storage.meta(["test_node2", "test_node3"])
     assert len(deps) == 2
-    assert len([d for d in deps if d["run_key"] == "test_key2"]) == 1
-    assert len([d for d in deps if d["run_key"] == "test_key3"]) == 1
+    assert len([d for d in deps if d["name"] == "test_node2"]) == 1
+    assert len([d for d in deps if d["name"] == "test_node3"]) == 1
 
 
 @pytest.mark.usefixtures("setup_test_env")

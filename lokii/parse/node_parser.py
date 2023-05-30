@@ -1,24 +1,22 @@
 import logging
 import glob
-import inspect
 from os import path
 
 from lokii.config import CONFIG
-from lokii.model.node_module import GenNodeModule, GenRun
+from lokii.model.node_module import GenNodeModule
 from lokii.util.module_file_loader import ModuleFileLoader
 from lokii.util.perf_timer_context import PerfTimerContext
+from lokii.parse.base_parser import BaseParser
 
 NODE_RESOLVER = "**/*%s" % CONFIG.gen.node_ext
 
 
-class NodeParser:
+class NodeParser(BaseParser):
     """
     Reads and validates node configurations from filesystem structure.
 
     :var nodes: parsed generation nodes
     :type nodes: dict[str, GenNodeModule]
-    :var runs: parsed generation runs
-    :type runs: dict[str, GenRun]
     """
 
     def __init__(self, source_folder):
@@ -29,30 +27,22 @@ class NodeParser:
         """
         self.root = source_folder
         self.nodes = {}
-        self.runs = {}
 
     def parse(self):
         """
         :return: parsed and validated node run flat map
-        :rtype: dict[str, GenRun]
+        :rtype: dict[str, GenNodeModule]
         """
         with PerfTimerContext() as t:
             nodes = list(self.__parse_nodes())
             self.nodes = {n.name: n for n in nodes}
-            self.runs = {
-                GenRun.create_key(n.name, i): GenRun(n.name, n.version, i, r)
-                for n in nodes
-                for i, r in enumerate(n.runs)
-            }
 
         node_count = len(nodes)
-        run_count = len(self.runs)
         if node_count == 0:
             logging.warning("No generation node file found at %s" % self.root)
         else:
-            logging.info("Total %d runs found." % run_count)
             logging.info("%d generation node parsed in %s" % (node_count, t))
-        return self.runs
+        return self.nodes
 
     def __parse_nodes(self):
         """
@@ -68,43 +58,29 @@ class NodeParser:
         for fp in file_paths:
             loader = ModuleFileLoader(fp)
             loader.load()
-            module = loader.module
+            mod = loader.module
 
-            # check required conditions
-            assert hasattr(module, "runs"), "`runs` configuration not found at %s" % fp
-            assert module.runs is not None, "`runs` configuration not found at %s" % fp
-            assert isinstance(module.runs, list), "`runs` must be list at %s" % fp
-            assert len(module.runs) > 0, "`runs` has no items at %s" % fp
-
+            # extract node name from filename
             m_name = path.basename(fp).replace(CONFIG.gen.node_ext, "")
-            m_version = loader.version
+            # extract groups from file path
             m_groups = path.relpath(fp, self.root).split(path.sep)[:-1]
-            parsed = GenNodeModule(loader.module.runs, m_name, m_version, m_groups)
+            m_version = loader.version
+            m_wait = []
 
-            # check optional conditions
-            if hasattr(module, "name") and module.name is not None:
-                parsed.name = module.name
-            if hasattr(module, "version") and module.version is not None:
-                parsed.version = module.version
+            # ensure provided module is valid
+            self.attr(mod, "source", "`source` not found at %s" % fp)
+            self.inst(mod.source, str, "`source` must be str at %s" % fp)
+            self.attr(mod, "item", "`item` not found at %s" % fp)
+            self.func(mod.item, "`item` must be function at %s" % fp)
+            self.sig(mod.item, 1, "`item` accepts only one param at %s" % fp)
+            if self.attr(mod, "wait"):
+                self.inst(mod.wait, list, "`wait` must be list at %s" % fp)
+                m_wait = mod.wait
+            if self.attr(mod, "name"):
+                self.inst(mod.name, str, "`name` must be str at %s" % fp)
+                m_name = mod.name
 
-            runs = []
-            for i, r in enumerate(module.runs):
-                # ensure run configuration is valid
-                AE = AssertionError
-                assert "source" in r, "runs[%d][`source`] not found at %s" % (i, fp)
-                if not isinstance(r["source"], str):
-                    raise AE("runs[%d][`source`] must be str at %s" % (i, fp))
-                if "wait" not in r:
-                    r["wait"] = []
-                elif not isinstance(r["wait"], list):
-                    raise AE("runs[%d][`wait`] must be list at %s" % (i, fp))
-                if "func" not in r or r["func"] is None:
-                    raise AE("runs[%d][`func`] not found at %s" % (i, fp))
-                elif not inspect.isfunction(r["func"]):
-                    raise AE("runs[%d][`func`] must be function at %s" % (i, fp))
-                elif len(inspect.signature(r["func"]).parameters) != 1:
-                    raise AE("runs[%d][`func`] accepts only one param at %s" % (i, fp))
-                runs.append(r)
-
-            parsed.runs = runs
+            parsed = GenNodeModule(
+                mod.source, mod.item, m_wait, m_name, m_version, m_groups
+            )
             yield parsed

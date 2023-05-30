@@ -1,13 +1,12 @@
-from __future__ import annotations
-
 import math
 from functools import partial
 from typing import Callable
+
 from pathos.pools import ProcessPool
 
 from lokii.config import CONFIG
+from lokii.model.node_module import GenNodeModule
 from lokii.logger.progress import ProgressLogger
-from lokii.model.node_module import GenRun
 from lokii.storage.data_storage import DataStorage
 from lokii.storage.temp_storage import TempStorage
 
@@ -16,17 +15,17 @@ def _exec_chunk(func: Callable, args: list[dict]):
     return [func(arg) for arg in args]
 
 
-class GenExecutor:
-    def __init__(self, run: GenRun, data_storage: DataStorage):
+class NodeExecutor:
+    def __init__(self, node: GenNodeModule, data_storage: DataStorage):
         """
         Reads and validates dataset configuration from filesystem structure.
 
-        :param run: root path of the dataset generation
+        :param node: root path of the dataset generation
         :param data_storage: root path of the dataset generation
         """
-        self.run = run
+        self.run = node
         self.data_storage = data_storage
-        self.__temp_storage = TempStorage(self.run.node_name)
+        self.__temp_storage = TempStorage(self.run.name)
 
         # total times the gen function will be called
         self.t_count = 0
@@ -66,7 +65,7 @@ class GenExecutor:
         chunk_size = CONFIG.gen.chunk_size
         chunk_args = [args[i : i + chunk_size] for i in range(0, len(args), chunk_size)]
 
-        gen_func = partial(_exec_chunk, self.run.func)
+        gen_func = partial(_exec_chunk, self.run.item)
         with ProcessPool(nodes=CONFIG.gen.concurrency) as pool:
             for chunk in pool.uimap(gen_func, chunk_args):
                 # remove null items from generated chunk

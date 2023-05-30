@@ -8,9 +8,7 @@ from lokii.config import CONFIG
 
 CONN = None  #: duckdb.DuckDBPyConnection
 
-NodeMetadata = TypedDict(
-    "NodeMetadata", {"run_key": str, "version": str, "gen_id": str}
-)
+NodeMetadata = TypedDict("NodeMetadata", {"name": str, "version": str, "gen_id": str})
 
 
 class DataStorage:
@@ -24,7 +22,7 @@ class DataStorage:
             # create node meta table to store run generation information
             q = (
                 "CREATE TABLE IF NOT EXISTS main.__meta"
-                "(run_key TEXT, version TEXT, gen_id TEXT, PRIMARY KEY(run_key));"
+                "(name TEXT, version TEXT, gen_id TEXT, PRIMARY KEY(name));"
             )
             conn.execute(q).fetchall()
 
@@ -40,31 +38,31 @@ class DataStorage:
             data = conn.execute(q % (query, size, index * size)).df()
             return data.to_dict("records")
 
-    def save(self, gen_id: str, run_key: str, version: str) -> None:
+    def save(self, gen_id: str, name: str, version: str) -> None:
         """
         Generation id and node version will be stored in a meta table that can be used to check
         if gen run data is valid for consecutive runs.
 
         :param gen_id: identification of the generation process
-        :param run_key: identification of the generation run
-        :param version: node version of the module
+        :param name: identification of the node
+        :param version: the code version of the module
         """
         with self.connect() as conn:
             q = """
-            INSERT OR REPLACE INTO main.__meta(run_key, version, gen_id)
+            INSERT OR REPLACE INTO main.__meta(name, version, gen_id)
             VALUES ('%s', '%s', '%s');
             """
-            conn.execute(q % (run_key, version, gen_id)).fetchall()
+            conn.execute(q % (name, version, gen_id)).fetchall()
 
-    def meta(self, run_keys: list[str]) -> list[NodeMetadata]:
+    def meta(self, names: list[str]) -> list[NodeMetadata]:
         """
         Fetches generation metadata information about given runs.
-        :param run_keys: list of run ids
+        :param names: list of node names
         :return: list of node meta dict
         """
         with self.connect() as conn:
-            keys = ",".join(["'%s'" % k for k in run_keys])
-            q = "SELECT run_key, version, gen_id FROM main.__meta WHERE run_key IN (%s);"
+            keys = ",".join(["'%s'" % n for n in names])
+            q = "SELECT name, version, gen_id FROM main.__meta WHERE name IN (%s);"
             data = conn.execute(q % keys).df()
             return data.to_dict("records")
 
