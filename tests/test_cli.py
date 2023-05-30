@@ -1,7 +1,6 @@
+import os
 import shutil
-
 import pytest
-import os.path
 from io import StringIO
 
 from config import CONFIG
@@ -32,15 +31,19 @@ def test_exec_cmd_should_obey_log_level(caplog):
 
 
 @pytest.mark.parametrize(
-    "m_paths, m_nodes", [(["t1"], [{"source": "INVALID"}])], indirect=True
+    "glob_files, load_modules",
+    [(["t1.gen.py"], [{"source": "INVALID SQL", "item": lambda x: x}])],
+    indirect=True,
 )
-def test_exec_cmd_should_log_errors_with_critical_level(m_paths, m_nodes, caplog):
+def test_exec_cmd_should_log_errors_with_critical_level(
+    glob_files, load_modules, caplog
+):
     exec_cmd("lokii -f .")
     assert "CRITICAL" in caplog.text
 
 
-@pytest.mark.parametrize("m_paths, m_nodes", [([], [])], indirect=True)
-def test_exec_cmd_should_clear_db_if_purge(m_paths, m_nodes):
+@pytest.mark.parametrize("glob_files, load_modules", [([], [])], indirect=True)
+def test_exec_cmd_should_clear_db_if_purge(glob_files, load_modules):
     exec_cmd("lokii -p")
     assert not os.path.exists(CONFIG.temp.db_path)
     assert os.path.exists("data")
@@ -48,22 +51,24 @@ def test_exec_cmd_should_clear_db_if_purge(m_paths, m_nodes):
 
 
 @pytest.mark.parametrize(
-    "m_paths, m_nodes, out_path",
+    "glob_files, load_modules, out_path",
     [(["t1.gen.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
-    indirect=["m_paths", "m_nodes"],
+    indirect=["glob_files", "load_modules"],
 )
-def test_exec_cmd_should_execute_generation(m_paths, m_nodes, out_path):
+def test_exec_cmd_should_execute_generation(glob_files, load_modules, out_path):
     exec_cmd("lokii -p -o %s -f ." % out_path)
     assert os.path.exists(out_path)
     shutil.rmtree(out_path)
 
 
 @pytest.mark.parametrize(
-    "m_paths, m_nodes, out_path",
+    "glob_files, load_modules, out_path",
     [(["t1.gen.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
-    indirect=["m_paths", "m_nodes"],
+    indirect=["glob_files", "load_modules"],
 )
-def test_exec_cmd_should_cache_consequent_runs(m_paths, m_nodes, out_path, caplog):
+def test_exec_cmd_should_cache_consequent_runs(
+    glob_files, load_modules, out_path, caplog
+):
     exec_cmd("lokii -o %s -f ." % out_path)
     assert os.path.exists(CONFIG.temp.db_path)
     caplog.clear()
@@ -77,10 +82,10 @@ def test_exec_cmd_should_cache_consequent_runs(m_paths, m_nodes, out_path, caplo
 gen_mod = {"source": "SELECT 1", "item": lambda x: x, "version": "v1"}
 
 
-@pytest.mark.usefixtures("m_paths", "m_nodes")
+@pytest.mark.usefixtures("glob_files", "load_modules")
 @pytest.mark.parametrize("out_path", ["test_out_1"])
 @pytest.mark.parametrize(
-    "m_paths, m_nodes", [(["t1.gen.py"], [gen_mod])], indirect=True
+    "glob_files, load_modules", [(["t1.gen.py"], [gen_mod])], indirect=True
 )
 def test_exec_cmd_should_regenerate_on_code_change(caplog, out_path):
     # start generation for code version v1
@@ -104,10 +109,10 @@ gen_mod1, gen_mod2 = (
 )
 
 
-@pytest.mark.usefixtures("m_paths", "m_nodes")
+@pytest.mark.usefixtures("glob_files", "load_modules")
 @pytest.mark.parametrize("out_path", ["test_out_1"])
 @pytest.mark.parametrize(
-    "m_paths, m_nodes",
+    "glob_files, load_modules",
     [(["t1.gen.py", "t2.gen.py"], [gen_mod1, gen_mod2])],
     indirect=True,
 )

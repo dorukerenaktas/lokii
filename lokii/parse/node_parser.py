@@ -1,6 +1,6 @@
 import logging
-import glob
 from os import path
+from glob import glob
 
 from lokii.config import CONFIG
 from lokii.model.node_module import GenNodeModule
@@ -53,7 +53,7 @@ class NodeParser(BaseParser):
         :rtype: list[GenNodeModule]
         """
         glob_path = path.join(self.root, NODE_RESOLVER)
-        file_paths = [f for f in glob.glob(glob_path)]
+        file_paths = [f for f in glob(glob_path)]
 
         for fp in file_paths:
             loader = ModuleFileLoader(fp)

@@ -1,6 +1,6 @@
 import logging
-import glob
 from os import path
+from glob import glob
 
 from lokii.config import CONFIG
 from lokii.model.group_module import GroupModule
@@ -53,7 +53,7 @@ class GroupParser(BaseParser):
         :rtype: list[GroupModule]
         """
         glob_path = path.join(self.root, GROUP_RESOLVER)
-        file_paths = [f for f in glob.glob(glob_path)]
+        file_paths = [f for f in glob(glob_path)]
 
         for fp in file_paths:
             loader = ModuleFileLoader(fp)

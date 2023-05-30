@@ -21,7 +21,7 @@ class DataStorage:
         with self.connect() as conn:
             # create node meta table to store run generation information
             q = (
-                "CREATE TABLE IF NOT EXISTS main.__meta"
+                "CREATE TABLE IF NOT EXISTS __meta"
                 "(name TEXT, version TEXT, gen_id TEXT, PRIMARY KEY(name));"
             )
             conn.execute(q).fetchall()
@@ -34,8 +34,9 @@ class DataStorage:
 
     def exec(self, query: str, index: int, size: int) -> list[dict]:
         with self.connect() as conn:
-            q = "WITH _t AS (%s) SELECT * FROM _t LIMIT %d OFFSET %d;"
-            data = conn.execute(q % (query, size, index * size)).df()
+            args = (query, size, index * size)
+            q = "WITH _t AS (%s) SELECT * FROM _t LIMIT %d OFFSET %d;" % args
+            data = conn.execute(q).fetch_df()
             return data.to_dict("records")
 
     def save(self, gen_id: str, name: str, version: str) -> None:
@@ -49,7 +50,7 @@ class DataStorage:
         """
         with self.connect() as conn:
             q = """
-            INSERT OR REPLACE INTO main.__meta(name, version, gen_id)
+            INSERT OR REPLACE INTO __meta(name, version, gen_id)
             VALUES ('%s', '%s', '%s');
             """
             conn.execute(q % (name, version, gen_id)).fetchall()
@@ -62,8 +63,8 @@ class DataStorage:
         """
         with self.connect() as conn:
             keys = ",".join(["'%s'" % n for n in names])
-            q = "SELECT name, version, gen_id FROM main.__meta WHERE name IN (%s);"
-            data = conn.execute(q % keys).df()
+            q = "SELECT name, version, gen_id FROM __meta WHERE name IN (%s);"
+            data = conn.execute(q % keys).fetch_df()
             return data.to_dict("records")
 
     def insert(self, name: str, files: list[str]) -> None:
