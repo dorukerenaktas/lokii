@@ -11,16 +11,16 @@ class GroupModule:
     :type name: str
     :var before: Called once before export function
     :type before: ExportFunc
-    :var export: Called for every node in this group
-    :type export: ExportFunc
     :var after: Called once after export function
     :type after: ExportFunc
+    :var export: Called for every node in this group
+    :type export: ExportFunc
     """
 
     name = None
     before = None
-    export = None
     after = None
+    export = None
 
     def __init__(self, name):
         self.name = name

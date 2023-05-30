@@ -50,7 +50,6 @@ setup(
         "tqdm==4.65.0",
         "duckdb==0.8.0",
         "typing==3.7.4.3",
-        "typing-extensions==4.6.2",
     ],
     license="MIT License",
     zip_safe=False,

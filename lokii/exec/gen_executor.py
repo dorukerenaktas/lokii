@@ -27,7 +27,6 @@ class GenExecutor:
         self.run = run
         self.data_storage = data_storage
         self.__temp_storage = TempStorage(self.run.node_name)
-        self.__logger: ProgressLogger
 
         # total times the gen function will be called
         self.t_count = 0

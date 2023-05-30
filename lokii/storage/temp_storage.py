@@ -12,12 +12,12 @@ class TempStorage:
         :param node_name: name of the node
         """
         self.node_name = node_name
-        self.batches: list[str] = []
+        self.batches = []
         self.item_count = 0
 
     def dump(self, batch_data: list[dict]) -> None:
         storage_key = self.node_name + str(len(self.batches))
-        storage_path = os.path.join(CONFIG.temp.data_path, f"{storage_key}.json")
+        storage_path = os.path.join(CONFIG.temp.data_path, "%s.json" % storage_key)
 
         with open(storage_path, "w") as _f:
             _f.write(json.dumps(batch_data))

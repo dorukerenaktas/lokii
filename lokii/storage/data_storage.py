@@ -6,13 +6,11 @@ from typing import TypedDict
 
 from lokii.config import CONFIG
 
-CONN: duckdb.DuckDBPyConnection
+CONN = None  #: duckdb.DuckDBPyConnection
 
-
-class NodeMetadata(TypedDict):
-    run_key: str
-    version: str
-    gen_id: str
+NodeMetadata = TypedDict(
+    "NodeMetadata", {"run_key": str, "version": str, "gen_id": str}
+)
 
 
 class DataStorage:
@@ -32,14 +30,14 @@ class DataStorage:
 
     def count(self, query: str) -> int:
         with self.connect() as conn:
-            q = f"WITH _t AS ({query}) SELECT COUNT() FROM _t;"
+            q = "WITH _t AS (%s) SELECT COUNT() FROM _t;" % query
             (count,) = conn.execute(q).fetchone()
             return count
 
     def exec(self, query: str, index: int, size: int) -> list[dict]:
         with self.connect() as conn:
-            q = f"WITH _t AS ({query}) SELECT * FROM _t LIMIT {size} OFFSET {index * size};"
-            data = conn.execute(q).df()
+            q = "WITH _t AS (%s) SELECT * FROM _t LIMIT %d OFFSET %d;"
+            data = conn.execute(q % (query, size, index * size)).df()
             return data.to_dict("records")
 
     def save(self, gen_id: str, run_key: str, version: str) -> None:
@@ -52,11 +50,11 @@ class DataStorage:
         :param version: node version of the module
         """
         with self.connect() as conn:
-            q = f"""
+            q = """
             INSERT OR REPLACE INTO main.__meta(run_key, version, gen_id)
-            VALUES ('{run_key}', '{version}', '{gen_id}');
+            VALUES ('%s', '%s', '%s');
             """
-            conn.execute(q).fetchall()
+            conn.execute(q % (run_key, version, gen_id)).fetchall()
 
     def meta(self, run_keys: list[str]) -> list[NodeMetadata]:
         """
@@ -65,9 +63,9 @@ class DataStorage:
         :return: list of node meta dict
         """
         with self.connect() as conn:
-            keys = ",".join([f"'{k}'" for k in run_keys])
-            q = f"SELECT run_key, version, gen_id FROM main.__meta WHERE run_key IN ({keys});"
-            data = conn.execute(q).df()
+            keys = ",".join(["'%s'" % k for k in run_keys])
+            q = "SELECT run_key, version, gen_id FROM main.__meta WHERE run_key IN (%s);"
+            data = conn.execute(q % keys).df()
             return data.to_dict("records")
 
     def insert(self, name: str, files: list[str]) -> None:
@@ -84,12 +82,12 @@ class DataStorage:
                 # create schema if node name defines `schema.table` syntax
                 assert len(name.split(".")) == 2, "Nested schemas are not supported."
                 schema = name.split(".")[0]
-                q = f"CREATE SCHEMA IF NOT EXISTS {schema};"
-                conn.execute(q).fetchall()
+                q = "CREATE SCHEMA IF NOT EXISTS %s;"
+                conn.execute(q % schema).fetchall()
 
             # concatenate and insert file contents in a fresh table
-            q = f"CREATE OR REPLACE TABLE {name} AS SELECT * FROM read_json_auto({files});"
-            conn.execute(q).fetchall()
+            q = "CREATE OR REPLACE TABLE %s AS SELECT * FROM read_json_auto(%s);"
+            conn.execute(q % (name, files)).fetchall()
 
     def export(self, out_path: str, fmt: str) -> None:
         """
@@ -108,6 +106,6 @@ class DataStorage:
                 os.makedirs(out_path)
 
             for t in tables:
-                path = os.path.join(out_path, f"{t}.{fmt}")
+                path = os.path.join(out_path, ".".join([t, fmt]))
                 # export to output path
-                conn.execute(f"COPY {t} TO '{path}'").fetchone()
+                conn.execute("COPY %s TO '%s'" % (t, path)).fetchone()

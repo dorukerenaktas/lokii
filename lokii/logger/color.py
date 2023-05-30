@@ -27,10 +27,10 @@ def style(
 ):
     bits = []
     if fg:
-        bits.append(f"\033[{_ansi_colors[fg]}m")
+        bits.append("\033[%dm" % _ansi_colors[fg])
     if bg:
-        bits.append(f"\033[{_ansi_colors[bg] + 10}m")
-    bits.append(f"\033[{1 if bold else 22}m")
+        bits.append("\033[%dm" % (_ansi_colors[bg] + 10))
+    bits.append("\033[%dm" % (1 if bold else 22))
     bits.append(text)
     if reset:
         bits.append(_ansi_reset_all)

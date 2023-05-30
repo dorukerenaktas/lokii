@@ -39,7 +39,7 @@ class Lokii:
                 run = gen_runs[run_key]
                 dep_keys = analyzer.dependencies(run_key)
                 if self.is_dataset_valid(run, dep_keys):
-                    logging.info(f"{run_key} not changed. Using existing dataset.")
+                    logging.info("%s not changed. Using existing dataset." % run_key)
                     continue
 
                 # generate dataset
@@ -73,7 +73,9 @@ class Lokii:
         return target_count, item_count, generated_file_paths
 
     def is_dataset_valid(self, run: GenRun, dep_keys: list[str]):
-        metadata = self.__data_storage.meta([*dep_keys, run.run_key])
+        meta_keys = [run.run_key]
+        meta_keys.extend(dep_keys)
+        metadata = self.__data_storage.meta(meta_keys)
         curr = [m for m in metadata if m["run_key"] == run.run_key]
         if len(curr) == 0:
             # no dataset generated before with this run key

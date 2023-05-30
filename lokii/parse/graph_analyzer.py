@@ -26,5 +26,5 @@ class GraphAnalyzer:
     def execution_order(self) -> list[str]:
         cycles = list(nx.simple_cycles(self.run_dig))
         if len(cycles) != 0:
-            raise AssertionError(f"Found cyclic dependencies!\n{cycles}")
+            raise AssertionError("Found cyclic dependencies!\n%s" % cycles)
         return list(nx.topological_sort(self.run_dig))

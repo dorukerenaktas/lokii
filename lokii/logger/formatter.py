@@ -8,10 +8,10 @@ class MultiFormatter(Formatter):
 
     def __init__(self, formats: dict[int, str] = None, **kwargs):
         base_format = kwargs.pop("fmt", None)
-        super().__init__(base_format, **kwargs)
+        super(MultiFormatter, self).__init__(base_format, **kwargs)
         fmts = formats or default_formats
         self.formatters = {lvl: Formatter(fmt, **kwargs) for lvl, fmt in fmts.items()}
 
-    def format(self, record: LogRecord):
-        formatter = self.formatters.get(record.levelno)
-        return super().format(record) if formatter is None else formatter.format(record)
+    def format(self, r: LogRecord):
+        fmt = self.formatters.get(r.levelno)
+        return super(MultiFormatter, self).format(r) if fmt is None else fmt.format(r)
