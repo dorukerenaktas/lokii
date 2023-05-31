@@ -62,7 +62,8 @@ class Lokii:
         logging.info("Generation completed!")
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
-        self.__data_storage.export(self.__out_folder, "csv")
+
+        self.export()
         Lokii.clean_env(purge)
 
     def generate_node(self, node: GenNodeModule) -> (int, int, list[str]):
@@ -78,6 +79,33 @@ class Lokii:
 
         logger.info("{:,} items generated in {}".format(item_count, t))
         return target_count, item_count, generated_file_paths
+
+    def export(self):
+        with PerfTimerContext() as t:
+            groups = self.__group_parser.parse()
+            # create dependency map from node source queries
+            dep_map = [
+                (g.name, [gr for gr in g.groups if gr in groups])
+                for g in groups.values()
+            ]
+            analyzer = GraphAnalyzer(dep_map)
+            exec_order = analyzer.execution_order()
+            for name in exec_order:
+                group = groups[name]
+                if group.before:
+                    group.before({})
+
+            for name in exec_order:
+                group = groups[name]
+                if group.export:
+                    # TODO: check each node that belongs to this group
+                    #  if node exported once do not export for consequent runs
+                    group.export({})
+
+            for name in exec_order[::-1]:
+                group = groups[name]
+                if group.after:
+                    group.after({})
 
     def is_node_valid(self, node: GenNodeModule, dep_keys: list[str]):
         metadata = self.__data_storage.meta(dep_keys)

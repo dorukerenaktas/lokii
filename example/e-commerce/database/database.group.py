@@ -5,7 +5,7 @@ from glob import glob
 conn_str = "dbname=postgres user=postgres password=postgres host=localhost"
 
 
-def before():
+def before(args):
     sql_files = [f for f in glob(os.path.dirname(__file__))]
     conn = None
     try:
