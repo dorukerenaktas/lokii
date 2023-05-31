@@ -65,7 +65,6 @@ class NodeParser(BaseParser):
             # extract groups from file path
             m_groups = path.relpath(fp, self.root).split(path.sep)[:-1]
             m_version = loader.version
-            m_wait = []
 
             # ensure provided module is valid
             self.attr(mod, "source", "`source` not found at %s" % fp)
@@ -73,14 +72,9 @@ class NodeParser(BaseParser):
             self.attr(mod, "item", "`item` not found at %s" % fp)
             self.func(mod.item, "`item` must be function at %s" % fp)
             self.sig(mod.item, 1, "`item` accepts only one param at %s" % fp)
-            if self.attr(mod, "wait"):
-                self.inst(mod.wait, list, "`wait` must be list at %s" % fp)
-                m_wait = mod.wait
             if self.attr(mod, "name"):
                 self.inst(mod.name, str, "`name` must be str at %s" % fp)
                 m_name = mod.name
 
-            parsed = GenNodeModule(
-                mod.source, mod.item, m_wait, m_name, m_version, m_groups
-            )
+            parsed = GenNodeModule(mod.source, mod.item, m_name, m_version, m_groups)
             yield parsed

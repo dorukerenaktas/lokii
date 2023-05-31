@@ -23,4 +23,9 @@ class GroupModule:
     export = None
 
     def __init__(self, name):
+        """
+        Initialize generation node group module.
+        :param name: name of the group
+        :type name: str
+        """
         self.name = name

@@ -14,7 +14,7 @@ mimic real-world scenarios, allowing for comprehensive end-to-end testing of you
 
 ## Create a generation project
 
-Generation project stores node generation configuration files. Every file with `.gen.py` is considered as a node.
+Generation project stores node generation configuration files. Every file with `.node.py` is considered as a node.
 You can group nodes with nesting, but it is optional.
 
 > If your dataset is for a relational database, you can think of each node as defining a table.
@@ -24,13 +24,13 @@ You can group nodes with nesting, but it is optional.
 
 proj_dir
     ├── group_1
-    │   ├── node_1.gen.py
-    │   └── node_2.gen.py
+    │   ├── node_1.node.py
+    │   └── node_2.node.py
     ├── group_2
-    │   ├── node_3.gen.py
-    │   └── node_4.gen.py
-    ├── node_5.gen.py
-    └── node_6.gen.py
+    │   ├── node_3.node.py
+    │   └── node_4.node.py
+    ├── node_5.node.py
+    └── node_6.node.py
 ```
 
 
@@ -64,7 +64,7 @@ runs = [
 ```
 
 Define a dataset node by using folder and special files. Specify schemas or groups using `schema_name` folders,
-configure generation parameters using generation scripts to `table_name.gen.py`.
+configure generation parameters using generation scripts to `table_name.node.py`.
 
 
 

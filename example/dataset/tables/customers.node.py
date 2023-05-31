@@ -2,11 +2,13 @@ from faker import Faker
 
 fake = Faker()
 
+name = "customers"
+source = "SELECT * FROM range(10000)"
 
-def gen(args):
-    (i,) = (args[k] for k in ["index"])
+
+def item(args):
     return {
-        "customerNumber": i,
+        "customerNumber": args["id"],
         "customerName": fake.first_name(),
         "contactLastName": fake.first_name(),
         "contactFirstName": fake.last_name(),
@@ -20,16 +22,3 @@ def gen(args):
         "salesRepEmployeeNumber": "",
         "creditLimit": fake.random_number(digits=8),
     }
-
-
-name = "customers"
-runs = [
-    {
-        "source": "SELECT * FROM range(10000)",
-        "wait": ["employees"],
-        "rels": {
-            "e": "SELECT employeeNumber FROM employees WHERE jobTitle = 'sales-rep'"
-        },
-        "func": gen,
-    }
-]

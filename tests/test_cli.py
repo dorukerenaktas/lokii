@@ -32,7 +32,7 @@ def test_exec_cmd_should_obey_log_level(caplog):
 
 @pytest.mark.parametrize(
     "glob_files, load_modules",
-    [(["t1.gen.py"], [{"source": "INVALID SQL", "item": lambda x: x}])],
+    [(["t1.node.py"], [{"source": "INVALID SQL", "item": lambda x: x}])],
     indirect=True,
 )
 def test_exec_cmd_should_log_errors_with_critical_level(
@@ -52,7 +52,7 @@ def test_exec_cmd_should_clear_db_if_purge(glob_files, load_modules):
 
 @pytest.mark.parametrize(
     "glob_files, load_modules, out_path",
-    [(["t1.gen.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
+    [(["t1.node.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
     indirect=["glob_files", "load_modules"],
 )
 def test_exec_cmd_should_execute_generation(glob_files, load_modules, out_path):
@@ -63,7 +63,7 @@ def test_exec_cmd_should_execute_generation(glob_files, load_modules, out_path):
 
 @pytest.mark.parametrize(
     "glob_files, load_modules, out_path",
-    [(["t1.gen.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
+    [(["t1.node.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
     indirect=["glob_files", "load_modules"],
 )
 def test_exec_cmd_should_cache_consequent_runs(
@@ -85,7 +85,7 @@ gen_mod = {"source": "SELECT 1", "item": lambda x: x, "version": "v1"}
 @pytest.mark.usefixtures("glob_files", "load_modules")
 @pytest.mark.parametrize("out_path", ["test_out_1"])
 @pytest.mark.parametrize(
-    "glob_files, load_modules", [(["t1.gen.py"], [gen_mod])], indirect=True
+    "glob_files, load_modules", [(["t1.node.py"], [gen_mod])], indirect=True
 )
 def test_exec_cmd_should_regenerate_on_code_change(caplog, out_path):
     # start generation for code version v1
@@ -104,7 +104,7 @@ def test_exec_cmd_should_regenerate_on_code_change(caplog, out_path):
 
 
 gen_mod1, gen_mod2 = (
-    {"source": "SELECT 1", "item": lambda x: x, "wait": ["n2"], "name": "n1"},
+    {"source": "SELECT * from n2", "item": lambda x: x, "name": "n1"},
     {"source": "SELECT 1", "item": lambda x: x, "name": "n2", "version": "v1"},
 )
 
@@ -113,7 +113,7 @@ gen_mod1, gen_mod2 = (
 @pytest.mark.parametrize("out_path", ["test_out_1"])
 @pytest.mark.parametrize(
     "glob_files, load_modules",
-    [(["t1.gen.py", "t2.gen.py"], [gen_mod1, gen_mod2])],
+    [(["t1.node.py", "t2.node.py"], [gen_mod1, gen_mod2])],
     indirect=True,
 )
 def test_exec_cmd_should_regenerate_on_dependency_change(caplog, out_path):

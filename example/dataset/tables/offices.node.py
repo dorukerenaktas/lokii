@@ -2,8 +2,10 @@ from faker import Faker
 
 fake = Faker()
 
+source = "SELECT * FROM range(10)"
 
-def gen(args):
+
+def item(args):
     address = fake.address().split("\n")
     return {
         "officeCode": args["id"],
@@ -16,11 +18,3 @@ def gen(args):
         "postalCode": fake.postcode(),
         "territory": fake.administrative_unit(),
     }
-
-
-runs = [
-    {
-        "source": "SELECT * FROM range(10)",
-        "func": gen,
-    }
-]

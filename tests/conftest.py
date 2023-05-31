@@ -2,6 +2,7 @@ import os
 import shutil
 
 import pytest
+from lokii.config import CONFIG
 from pytest import FixtureRequest
 from pytest_mock import MockerFixture
 
@@ -20,7 +21,14 @@ def glob_files(mocker, request):
     :rtype: list[str]
     """
     files = request.param if hasattr(request, "param") else []
-    mocker.patch("lokii.parse.node_parser.glob", return_value=files)
+    mocker.patch(
+        "lokii.parse.group_parser.glob",
+        return_value=[f for f in files if CONFIG.gen.group_ext in f],
+    )
+    mocker.patch(
+        "lokii.parse.node_parser.glob",
+        return_value=[f for f in files if CONFIG.gen.node_ext in f],
+    )
     return files
 
 
@@ -41,13 +49,16 @@ def load_modules(mocker, request, glob_files):
         mod_i = glob_files.index(file_path)
         loader = {
             "load": mocker.Mock(),
-            "module": type("GenNodeModule", (object,), mods[mod_i]),
+            "module": type("object", (object,), mods[mod_i]),
             "version": mods[mod_i]["version"] if "version" in mods[mod_i] else "v1",
         }
         return type("ModuleFileLoader", (object,), loader or {})()
 
-    mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
-    mock.side_effect = module_file_loader_side_effect
+    group_mock = mocker.patch("lokii.parse.group_parser.ModuleFileLoader")
+    group_mock.side_effect = module_file_loader_side_effect
+
+    node_mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
+    node_mock.side_effect = module_file_loader_side_effect
     return request.param if hasattr(request, "param") else []
 
 

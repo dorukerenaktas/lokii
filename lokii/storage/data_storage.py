@@ -26,6 +26,11 @@ class DataStorage:
             )
             conn.execute(q).fetchall()
 
+    def deps(self, query: str) -> list:
+        with self.connect() as conn:
+            names = conn.get_table_names(query)
+            return list(names)
+
     def count(self, query: str) -> int:
         with self.connect() as conn:
             q = "WITH _t AS (%s) SELECT COUNT() FROM _t;" % query

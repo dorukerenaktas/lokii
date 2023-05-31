@@ -1,6 +1,5 @@
 import os.path
 
-import duckdb
 import pytest
 
 from lokii.config import CONFIG
@@ -15,6 +14,28 @@ def test_init_should_create_database_and_meta_table():
     with storage.connect() as conn:
         assert os.path.exists(CONFIG.temp.db_path)
         assert "__meta" in conn.execute("SHOW TABLES;").fetchone()
+
+
+@pytest.mark.parametrize(
+    "query, expect",
+    [
+        ("SELECT * from customers", ["customers"]),
+        ("SELECT 100", []),
+        (
+            """
+                SELECT i.range, t, o.officeCode
+                    FROM offices o
+                    CROSS JOIN VALUES('manager', 'employee') as data(t)
+                    CROSS JOIN range(3) as i
+                """,
+            ["offices"],
+        ),
+    ],
+)
+def test_deps_should_return_dependencies_from_query(query, expect):
+    storage = DataStorage()
+    deps = storage.deps(query)
+    assert expect == deps
 
 
 def test_count_should_return_row_count_for_query_result():
@@ -69,7 +90,8 @@ def test_insert_should_create_schema_if_node_name_contain_dot(node, expect):
         _temp.dump([{"data": i} for i in range(10)])
         storage.insert(node, _temp.batches)
         res = conn.execute(
-            f"SELECT * FROM information_schema.schemata WHERE schema_name = '{expect}';"
+            "SELECT * FROM information_schema.schemata WHERE schema_name = '%s';"
+            % expect
         ).fetchone()
         assert expect in res
 
@@ -82,7 +104,7 @@ def test_insert_should_create_table_from_generated_files(loop, expect):
         for count in loop:
             _temp.dump([{"data": i} for i in range(count)])
         storage.insert("n1", _temp.batches)
-        assert expect in conn.execute(f"SELECT COUNT() FROM n1;").fetchone()
+        assert expect in conn.execute("SELECT COUNT() FROM n1;").fetchone()
 
 
 @pytest.mark.parametrize("nodes, fmt", [(["n1", "n2"], "csv")])
@@ -94,4 +116,4 @@ def test_export_should_create_export_data_files(nodes, fmt):
         storage.insert(node, _temp.batches)
     storage.export("data", fmt)
     for node in nodes:
-        assert os.path.exists(os.path.join("data", f"{node}.{fmt}"))
+        assert os.path.exists(os.path.join("data", ".".join([node, fmt])))

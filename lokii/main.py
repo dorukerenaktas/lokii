@@ -4,12 +4,13 @@ import shutil
 import uuid
 
 from lokii.config import CONFIG
-from lokii.parse.node_parser import NodeParser
-from lokii.util.graph_analyzer import GraphAnalyzer
 from lokii.storage.data_storage import DataStorage
-from lokii.exec.node_executor import NodeExecutor
-from lokii.util.perf_timer_context import PerfTimerContext
 from lokii.model.node_module import GenNodeModule
+from lokii.parse.node_parser import NodeParser
+from lokii.parse.group_parser import GroupParser
+from lokii.util.perf_timer_context import PerfTimerContext
+from lokii.util.graph_analyzer import GraphAnalyzer
+from lokii.exec.node_executor import NodeExecutor
 
 
 class Lokii:
@@ -27,23 +28,29 @@ class Lokii:
         Lokii.setup_env()
         self.__data_storage = DataStorage()
         self.__node_parser = NodeParser(self.__source_folder)
+        self.__group_parser = GroupParser(self.__source_folder)
 
     def generate(self, purge: bool = False):
         with PerfTimerContext() as t:
             nodes = self.__node_parser.parse()
-            analyzer = GraphAnalyzer([(n.name, n.wait) for n in nodes.values()])
+            # create dependency map from node source queries
+            dep_map = [
+                (n.name, [d for d in self.__data_storage.deps(n.source) if d in nodes])
+                for n in nodes.values()
+            ]
+            analyzer = GraphAnalyzer(dep_map)
             exec_order = analyzer.execution_order()
 
             total_target_count, total_item_count = 0, 0
             for name in exec_order:
                 run = nodes[name]
                 dep_keys = analyzer.dependencies(name)
-                if self.is_dataset_valid(run, dep_keys):
+                if self.is_node_valid(run, dep_keys):
                     logging.info("%s not changed. Using existing dataset." % name)
                     continue
 
                 # generate dataset
-                target_count, item_count, file_paths = self.generate_dataset(run)
+                target_count, item_count, file_paths = self.generate_node(run)
                 total_target_count += target_count
                 total_item_count += item_count
 
@@ -58,7 +65,7 @@ class Lokii:
         self.__data_storage.export(self.__out_folder, "csv")
         Lokii.clean_env(purge)
 
-    def generate_dataset(self, node: GenNodeModule) -> (int, int, list[str]):
+    def generate_node(self, node: GenNodeModule) -> (int, int, list[str]):
         with PerfTimerContext() as t:
             logger = logging.getLogger(node.name)
 
@@ -72,7 +79,7 @@ class Lokii:
         logger.info("{:,} items generated in {}".format(item_count, t))
         return target_count, item_count, generated_file_paths
 
-    def is_dataset_valid(self, node: GenNodeModule, dep_keys: list[str]):
+    def is_node_valid(self, node: GenNodeModule, dep_keys: list[str]):
         metadata = self.__data_storage.meta(dep_keys)
         curr = [m for m in metadata if m["name"] == node.name]
         if len(curr) == 0:

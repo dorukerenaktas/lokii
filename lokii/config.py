@@ -14,7 +14,7 @@ TEMP_DB_FILE = environ.get("LOKII__TEMP_DB_FILE", "lokii.duckdb")
 TEMP_DATA_DIR = environ.get("LOKII__TEMP_DATA_DIR", "data")
 
 # file extension to look for when finding generation node files
-GEN_NODE_EXT = environ.get("LOKII__GEN_NODE_EXT", ".gen.py")
+GEN_NODE_EXT = environ.get("LOKII__GEN_NODE_EXT", ".node.py")
 # file extension to look for when finding generation group files
 GEN_GROUP_EXT = environ.get("LOKII__GEN_GROUP_EXT", ".group.py")
 # -
