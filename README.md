@@ -1,148 +1,114 @@
-<img src="docs/assets/loki-logo.png" width="200" height="100" alt="Loki Logo" />
+![lokii-logo](https://github.com/dorukerenaktas/lokii/assets/20422563/fe774eba-ddd0-4bad-a093-553bb980f54c)
 
-[![PyPI version](https://badge.fury.io/py/lokii.svg)](https://badge.fury.io/py/lokii)
-[![Downloads](https://static.pepy.tech/personalized-badge/lokii?period=month&units=international_system&left_color=grey&right_color=brightgreen&left_text=Downloads)](https://pepy.tech/project/lokii)
+![PyPI](https://img.shields.io/pypi/v/lokii)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/lokii)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dorukerenaktas/lokii/python-app.yml)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/dorukerenaktas/lokii)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Licence](https://img.shields.io/pypi/l/lokii.svg)](https://github.com/dorukerenaktas/lokii)
 
-Generate fake datasets with ease.
+**`lokii`** is a powerful package that enables the generation of relational datasets, specifically tailored to
+facilitate the creation of robust development environments. With **`lokii`**, you can effortlessly generate diverse
+datasets that mimic real-world scenarios, allowing for comprehensive end-to-end testing of your applications.
 
-## Dataset Configuration
+![lokii_animated](https://github.com/dorukerenaktas/lokii/assets/20422563/9145c764-2db2-4c16-9019-e1feca323ae8)
 
-Define a dataset by using folder and special files. Specify schemas using `schema_name` folders, configure generation
-parameters using `table_name.json` and write generation scripts to `table_name.py`.
+# Project structure
 
-```
-root_folder
-    ├── schema_1
-    │   ├── table_1.json
-    │   ├── table_1.py
-    │   ├── table_2.json
-    │   └── table_2.py
-    └── schema_2
-        ├── table_3.json
-        ├── table_3.py
-        ├── table_4.json
-        └── table_4.py
-```
+**`lokii`** leverages the hierarchical structure of the file system to discover groups and nodes. Each dataset
+consists of nodes, which are defined using `.node.py` files. For instance, in the context of a database, each
+node represents a table. Furthermore, you can even group nodes under database schemas within the database. Groups
+defines how generated node data will be exported. You can recognize group files by their `.group.py` file extension.
 
-### Schema Folders
-
-Tabular data must have a `schema` in many database environments. If your dataset does not take advantage of schema
-structures just use a placeholder name like `public` in Postgres or `dbo` in SQLServer.
-
-Create a folder for every schema in your dataset. Store table definition and table generation files under related
-schema folder.
-
-### Table Definition Files
-
-Table definition files stores metadata and generation configuration for the tabular data. Database names are extracted
-from filenames.
-
-```json5
-// table_name.json
-{
-  "cols": ["col1", "col2", "..."],
-  "gen": {
-    "type": "simple",
-    "count": 1000
-  }
-}
+```shell
+# example project directory structure
+proj_dir
+    ├── group_1
+    │   ├── group_1.group.py
+    │   ├── node_2.node.py
+    │   └── node_2.node.py
+    ├── group_2
+    │   ├── node_3.node.py
+    │   └── node_4.node.py
+    ├── group_3.group.py
+    ├── node_5.node.py
+    └── node_6.node.py
 ```
 
-#### Properties
+## Node Definition
 
-##### cols
-> required, type: `List[str]`
-
-Stores column names of the table. Used for output metadata and result check assertions.
-
----
-
-##### gen
-> required, type: `object`
-
-Generation config for detection generation order and generation function parameters.
-
----
-
-##### gen.type
-> required, type: `"simple" | "product"`
-
-Generation type of the tabular data. Each option has own required properties.
-
-* `"simple"`: used for generating standalone table data that can be executed without any other table dependencies (If
-    it has no relations.).
-* `"product"`: used for generating relational table data that needs other tables for generation function.
-
-##### gen.count
-> required if `gen.type="simple"`, type: `int`
-
-Number of rows to be produced. Can not be used with `gen.type="product"`.
-
-##### gen.mul
-> required if `gen.type="product"`, type: `List | str`
-
-Table namespace or a list that used as multiplier. Each item or row in multiplier will trigger current table's
-generation function. Can not be used with `gen.type="simple"`.
-
-##### gen.rels
-> not required, type: `List[str]`
-
-Table relations that used on generation function. 
-
-### Generation Files
-
-Generation files contains simple function that executed for each row.
+Node file defines how each item will be generated. There are special variables and functions in node
+definition files.
+- `name`: Name of the node, filename will be used if not provided
+- `source`: Source query for retrieve dependent parameters for each item
+- `item`: Generation function that will return each item in node
 
 ```python
-# table_name.py
-from typing import Dict, Any
+# offices.node.py
+from faker import Faker
 
-"""
-:param index: row index for this table
-:param config: generation config that includes relations, multiplicand and other settings
-"""
-def gen(index: int, config: Dict[str, Any]) -> Dict:
-    return {"index": index, "config": config}
+# use your favorite tools to generate data
+# you can even use database connection, filesystem or AI
+fake = Faker()
+
+# if you want you can override the node name if not provided filename will be used
+# can be used in source queries if you want to retrieve rows that depends on another node
+# name = "business.offices"
+
+# define a query that returns one or more rows
+source = "SELECT * FROM range(10)"
+
+
+# item function will be called for each row in `source` query result
+def item(args):
+    address = fake.address().split("\n")
+    return {
+        "officeCode": args["id"],
+        "city": fake.city(),
+        "phone": fake.phone_number(),
+        "addressLine1": address[0],
+        "addressLine2": address[1],
+        "state": fake.city(),
+        "country": fake.country(),
+        "postalCode": fake.postcode(),
+        "territory": fake.administrative_unit(),
+    }
+```
+
+## Group Definition
+
+Group file defines how each node data will be exported. There are special functions in group definition files.
+- `before`: Called once before export operation
+- `export`: Called for every node in the group
+- `after`: Called once after export operation
+
+```python
+# database.group.py
+
+def before(args):
+    pass
+
+def export(args):
+    pass
+
+def after(args):
+    pass
 ```
 
 
 ## Upload to PyPI
+
 You can create the source distribution of the package by running the command given below:
+
 ```shell
 python3 setup.py sdist
 ```
 
 Install twine and upload pypi for `finnetdevlab` username.
+
 ```shell
 pip3 install twine
 twine upload dist/*
-```
-
-
-## Package
-
-Basic structure of package is
-
-```
-├── README.md
-├── packagename
-│   ├── __init__.py
-│   ├── packagename.py
-│   └── version.py
-├── pytest.ini
-├── requirements.txt
-├── setup.py
-└── tests
-    ├── __init__.py
-    ├── helpers
-    │   ├── __init__.py
-    │   └── my_helper.py
-    ├── tests_helper.py
-    └── unit
-        ├── __init__.py
-        ├── test_example.py
-        └── test_version.py
 ```
 
 ## Requirements
@@ -151,6 +117,7 @@ Package requirements are handled using pip. To install them do
 
 ```
 pip install -r requirements.txt
+pip install -r requirements.dev.txt
 ```
 
 ## Tests
@@ -160,10 +127,4 @@ with the pytest-cov plugin.
 
 Run your tests with ```py.test``` in the root directory.
 
-Coverage is ran by default and is set in the ```pytest.ini``` file.
-To see an html output of coverage open ```htmlcov/index.html``` after running the tests.
-
-## Travis CI
-
-There is a ```.travis.yml``` file that is set up to run your tests for python 2.7
-and python 3.2, should you choose to use it.
+Coverage is run by default and is set in the ```pytest.ini``` file.

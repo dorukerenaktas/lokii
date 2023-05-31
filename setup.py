@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-from pathlib import Path
-
+from os import path
 from setuptools import setup, find_packages
 
-root = Path(__file__).resolve().parent
-VERSION = (root / "VERSION").read_text(encoding="utf-8").strip()
-README = (root / "README.md").read_text(encoding="utf-8")
+root = path.dirname(__file__)
+with open(path.join(root, "VERSION"), "r") as f:
+    VERSION = f.read().strip()
+with open(path.join(root, "README.md"), "r") as f:
+    README = f.read().strip()
 
 setup(
     name="lokii",
@@ -14,6 +15,7 @@ setup(
     packages=find_packages(where="."),
     description="Generate, Load, Develop and Test with consistent relational datasets!",
     long_description=README,
+    long_description_content_type="text/markdown",
     keywords="data generation, relational datasets, development environment, testing, database",
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -34,7 +36,6 @@ setup(
     ],
     author="Doruk Eren Aktaş",
     author_email="dorukerenaktas@gmail.com",
-    py_modules=["lokii"],
     entry_points={
         "console_scripts": ["lokii=lokii.cli:exec_cmd"],
     },
@@ -43,11 +44,9 @@ setup(
     install_requires=[
         "pandas==2.0.1",
         "pathos==0.3.0",
-        "networkx==3.1",
         "tqdm==4.65.0",
         "duckdb==0.8.0",
         "typing==3.7.4.3",
-        "typing-extensions==4.6.2",
     ],
     license="MIT License",
     zip_safe=False,

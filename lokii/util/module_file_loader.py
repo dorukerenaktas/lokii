@@ -1,14 +1,16 @@
-from __future__ import annotations
-
 import os
 import sys
 import hashlib
 import inspect
 from types import ModuleType
-from importlib.util import spec_from_file_location, module_from_spec
 
 
 class ModuleFileLoader:
+    """
+    :type module: ModuleType or None
+    :type version: str or None
+    """
+
     def __init__(self, file_path: str):
         """
         Loads module from given path.
@@ -18,21 +20,28 @@ class ModuleFileLoader:
         self.path = os.path.abspath(file_path)
         self.filename = os.path.basename(file_path)
 
-        self.module: ModuleType | None = None
-        self.version: str | None = None
+        self.module = None
+        self.version = None
 
     def load(self) -> None:
         if not os.path.exists(self.path):
-            raise FileNotFoundError(f"No module file found at: {self.path}")
+            raise FileNotFoundError("No module file found at: %s" % self.path)
 
-        # read file spec from given path. filename is used as module name
-        spec = spec_from_file_location(self.filename, self.path)
-        module = module_from_spec(spec)
+        try:
+            import importlib.util
 
-        # introduce module to system
-        sys.modules[self.filename] = module
-        spec.loader.exec_module(module)
-        self.module = module
+            # read file spec from given path. filename is used as module name
+            spec = importlib.util.spec_from_file_location(self.filename, self.path)
+            module = importlib.util.module_from_spec(spec)
+
+            # introduce module to system
+            sys.modules[self.filename] = module
+            spec.loader.exec_module(module)
+            self.module = module
+        except ImportError:
+            from imp import load_source
+
+            module = load_source(self.filename, self.path)
 
         # acquire module source code as str
         src = inspect.getsource(module).encode("utf-8")

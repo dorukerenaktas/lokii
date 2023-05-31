@@ -2,27 +2,25 @@ import argparse
 import logging
 import sys
 
-from pathlib import Path
-from typing import Optional
-
 from lokii import Lokii
 from lokii.logger.context import LoggingContext
 from lokii.config import CONFIG
 
 LOKII_ASCII = r"""
- __         ______     __  __     __     __    
-/\ \       /\  __ \   /\ \/ /    /\ \   /\ \   
-\ \ \____  \ \ \/\ \  \ \  _"-.  \ \ \  \ \ \  
- \ \_____\  \ \_____\  \ \_\ \_\  \ \_\  \ \_\ 
-  \/_____/   \/_____/   \/_/\/_/   \/_/   \/_/ 
+▄▄▄▄▄   ▄▄▄▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄
+█   █   █       █   █ █ █   █   █
+█   █   █   ▄   █   █▄█ █   █   █
+█   █   █  █ █  █      ▄█   █   █
+█   █▄▄▄█  █▄█  █     █▄█   █   █
+█       █       █    ▄  █   █   █
+█▄▄▄▄▄▄▄█▄▄▄▄▄▄▄█▄▄▄█ █▄█▄▄▄█▄▄▄█ 
 """
-LOKII_EPILOG = f""""""
 
 
 class Command:
-    def __init__(self, argv: Optional[str] = None) -> None:
+    def __init__(self, argv=None) -> None:
         self.argv = argv.split() if argv else sys.argv[:]
-        self.prog_name = Path(self.argv[0]).name
+        self.prog_name = "lokii"
 
     def execute(self) -> None:
         """
@@ -33,13 +31,13 @@ class Command:
         formatter_class = argparse.RawDescriptionHelpFormatter
         parser = argparse.ArgumentParser(
             prog=self.prog_name,
-            description=f"{LOKII_ASCII}\n{self.prog_name} version {CONFIG.version}",
-            epilog=LOKII_EPILOG,
+            description="%s\n%s version %s"
+            % (LOKII_ASCII, self.prog_name, CONFIG.version),
             formatter_class=formatter_class,
         )
 
         parser.add_argument(
-            "--version", action="version", version=f"%(prog)s {CONFIG.version}"
+            "--version", action="version", version="%(prog)s " + CONFIG.version
         )
 
         parser.add_argument(
@@ -107,7 +105,7 @@ class Command:
                 logging.critical(str(err), exc_info=True)
 
 
-def exec_cmd(argv: Optional[str] = None) -> None:
+def exec_cmd(argv=None) -> None:
     """A simple method that runs a Command."""
     command = Command(argv)
     command.execute()

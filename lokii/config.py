@@ -1,25 +1,28 @@
-import os
-from pathlib import Path
+from os import path, environ, cpu_count
 
-root = Path(__file__).resolve().parent.parent
+root = path.dirname(path.dirname(__file__))
 # read app version from root of the project
-VERSION = (root / "VERSION").read_text(encoding="utf-8").strip()
+f = open(path.join(root, "VERSION"), "r")
+VERSION = f.read().strip()
+f.close()
 
 # temp directory that contains generated runtime files and database
-TEMP_DIR_PATH = os.environ.get("LOKII__TEMP_DIR_PATH", ".temp")
+TEMP_DIR_PATH = environ.get("LOKII__TEMP_DIR_PATH", ".temp")
 # duckdb database that stores generated data in relational tables
-TEMP_DB_FILE = os.environ.get("LOKII__TEMP_DB_FILE", "lokii.duckdb")
+TEMP_DB_FILE = environ.get("LOKII__TEMP_DB_FILE", "lokii.duckdb")
 # name of the temp data file that contains generated runtime files
-TEMP_DATA_DIR = os.environ.get("LOKII__TEMP_DATA_DIR", "data")
+TEMP_DATA_DIR = environ.get("LOKII__TEMP_DATA_DIR", "data")
 
-# file extension to look for when finding generation config files
-GEN_FILE_EXT = os.environ.get("LOKII__GEN_FILE_EXT", ".gen.py")
+# file extension to look for when finding generation node files
+GEN_NODE_EXT = environ.get("LOKII__GEN_NODE_EXT", ".node.py")
+# file extension to look for when finding generation group files
+GEN_GROUP_EXT = environ.get("LOKII__GEN_GROUP_EXT", ".group.py")
 # -
-GEN_CONCURRENCY = os.environ.get("LOKII__GEN_CONCURRENCY", os.cpu_count())
+GEN_CONCURRENCY = environ.get("LOKII__GEN_CONCURRENCY", cpu_count())
 # -
-GEN_BATCH_SIZE = os.environ.get("LOKII__GEN_BATCH_SIZE", 100_000)
+GEN_BATCH_SIZE = environ.get("LOKII__GEN_BATCH_SIZE", 100000)
 # -
-GEN_CHUNK_SIZE = os.environ.get("LOKII__GEN_CHUNK_SIZE", 200)
+GEN_CHUNK_SIZE = environ.get("LOKII__GEN_CHUNK_SIZE", 200)
 
 
 class __Config:
@@ -34,11 +37,11 @@ class __Config:
 
         @property
         def db_path(self) -> str:
-            return os.path.join(TEMP_DIR_PATH, TEMP_DB_FILE)
+            return path.join(TEMP_DIR_PATH, TEMP_DB_FILE)
 
         @property
         def data_path(self) -> str:
-            return os.path.join(TEMP_DIR_PATH, TEMP_DATA_DIR)
+            return path.join(TEMP_DIR_PATH, TEMP_DATA_DIR)
 
     class __GenConfig:
         """
@@ -46,8 +49,12 @@ class __Config:
         """
 
         @property
-        def file_ext(self) -> str:
-            return GEN_FILE_EXT
+        def node_ext(self) -> str:
+            return GEN_NODE_EXT
+
+        @property
+        def group_ext(self) -> str:
+            return GEN_GROUP_EXT
 
         @property
         def concurrency(self) -> int:

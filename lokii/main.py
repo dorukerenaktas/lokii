@@ -4,12 +4,13 @@ import shutil
 import uuid
 
 from lokii.config import CONFIG
-from lokii.model.gen_module import GenRun
-from lokii.parse.node_parser import NodeParser
-from lokii.parse.graph_analyzer import GraphAnalyzer
 from lokii.storage.data_storage import DataStorage
-from lokii.exec.gen_executor import GenExecutor
+from lokii.model.node_module import GenNodeModule
+from lokii.parse.node_parser import NodeParser
+from lokii.parse.group_parser import GroupParser
 from lokii.util.perf_timer_context import PerfTimerContext
+from lokii.util.graph_analyzer import GraphAnalyzer
+from lokii.exec.node_executor import NodeExecutor
 
 
 class Lokii:
@@ -26,31 +27,37 @@ class Lokii:
 
         Lokii.setup_env()
         self.__data_storage = DataStorage()
-        self.__gen_parser = NodeParser(self.__source_folder)
+        self.__node_parser = NodeParser(self.__source_folder)
+        self.__group_parser = GroupParser(self.__source_folder)
 
     def generate(self, purge: bool = False):
         with PerfTimerContext() as t:
-            gen_runs = self.__gen_parser.parse()
-            analyzer = GraphAnalyzer(list(gen_runs.values()))
-            run_exec_order = analyzer.execution_order()
+            nodes = self.__node_parser.parse()
+            # create dependency map from node source queries
+            dep_map = [
+                (n.name, [d for d in self.__data_storage.deps(n.source) if d in nodes])
+                for n in nodes.values()
+            ]
+            analyzer = GraphAnalyzer(dep_map)
+            exec_order = analyzer.execution_order()
 
             total_target_count, total_item_count = 0, 0
-            for run_key in run_exec_order:
-                run = gen_runs[run_key]
-                dep_keys = analyzer.dependencies(run_key)
-                if self.is_dataset_valid(run, dep_keys):
-                    logging.info(f"{run_key} not changed. Using existing dataset.")
+            for name in exec_order:
+                run = nodes[name]
+                dep_keys = analyzer.dependencies(name)
+                if self.is_node_valid(run, dep_keys):
+                    logging.info("%s not changed. Using existing dataset." % name)
                     continue
 
                 # generate dataset
-                target_count, item_count, file_paths = self.generate_dataset(run)
+                target_count, item_count, file_paths = self.generate_node(run)
                 total_target_count += target_count
                 total_item_count += item_count
 
                 # save generation metadata in database
-                self.__data_storage.save(self.__gen_id, run.run_key, run.node_version)
+                self.__data_storage.save(self.__gen_id, run.name, run.version)
                 # insert generated data in database
-                self.__data_storage.insert(run.node_name, file_paths)
+                self.__data_storage.insert(run.name, file_paths)
 
         logging.info("Generation completed!")
         logging.info("Total target item count: {:,}".format(total_target_count))
@@ -58,11 +65,11 @@ class Lokii:
         self.__data_storage.export(self.__out_folder, "csv")
         Lokii.clean_env(purge)
 
-    def generate_dataset(self, gen_run: GenRun) -> (int, int, list[str]):
+    def generate_node(self, node: GenNodeModule) -> (int, int, list[str]):
         with PerfTimerContext() as t:
-            logger = logging.getLogger(gen_run.run_key)
+            logger = logging.getLogger(node.name)
 
-            executor = GenExecutor(gen_run, self.__data_storage)
+            executor = NodeExecutor(node, self.__data_storage)
             target_count = executor.prepare_node()
 
             logger.info("Generation started for target {:,} items".format(target_count))
@@ -72,13 +79,13 @@ class Lokii:
         logger.info("{:,} items generated in {}".format(item_count, t))
         return target_count, item_count, generated_file_paths
 
-    def is_dataset_valid(self, run: GenRun, dep_keys: list[str]):
-        metadata = self.__data_storage.meta([*dep_keys, run.run_key])
-        curr = [m for m in metadata if m["run_key"] == run.run_key]
+    def is_node_valid(self, node: GenNodeModule, dep_keys: list[str]):
+        metadata = self.__data_storage.meta(dep_keys)
+        curr = [m for m in metadata if m["name"] == node.name]
         if len(curr) == 0:
             # no dataset generated before with this run key
             return False  # must generate
-        if curr[0]["version"] != run.node_version:
+        if curr[0]["version"] != node.version:
             # code version is different from previous run
             return False  # must regenerate
         for dep_meta in metadata:

@@ -1,56 +1,73 @@
+import os
+import shutil
+
 import pytest
-from unittest.mock import Mock
+from lokii.config import CONFIG
+from pytest import FixtureRequest
+from pytest_mock import MockerFixture
 
 from lokii import Lokii
 
 
 @pytest.fixture
-def found_mods(mocker, request):
-    gen_files = request.param or []
-    gen_files = [m if ".gen.py" in m else f"{m}.gen.py" for m in gen_files]
-    mocker.patch("glob.glob", return_value=gen_files)
-    return gen_files
+def glob_files(mocker, request):
+    """
+    :param mocker: Fixture that provides the same interface to functions in the mock module,
+    ensuring that they are uninstalled at the end of each test.
+    :type mocker: MockerFixture
+    :param request: A request for a fixture from a test or fixture function.
+    :type request: FixtureRequest
+    :return: list of found files
+    :rtype: list[str]
+    """
+    files = request.param if hasattr(request, "param") else []
+    mocker.patch(
+        "lokii.parse.group_parser.glob",
+        return_value=[f for f in files if CONFIG.gen.group_ext in f],
+    )
+    mocker.patch(
+        "lokii.parse.node_parser.glob",
+        return_value=[f for f in files if CONFIG.gen.node_ext in f],
+    )
+    return files
 
 
 @pytest.fixture
-def loaded_mods(mocker, found_mods, request):
+def load_modules(mocker, request, glob_files):
+    """
+    :param mocker: Fixture that provides the same interface to functions in the mock module,
+    ensuring that they are uninstalled at the end of each test.
+    :type mocker: MockerFixture
+    :param request: A request for a fixture from a test or fixture function.
+    :type request: FixtureRequest
+    :param glob_files: A glob mock fixture from a test or fixture function.
+    :type glob_files: list[str]
+    """
+
     def module_file_loader_side_effect(file_path: str):
-        mods = request.param or []
-        mod_i = found_mods.index(file_path)
-        if mods[mod_i].runs and isinstance(mods[mod_i].runs, list):
-            mods[mod_i].runs = [
-                {"source": "SELECT * FROM range(100)", "func": lambda x: x, **run}
-                for run in mods[mod_i].runs
-            ]
+        mods = request.param if hasattr(request, "param") else []
+        mod_i = glob_files.index(file_path)
         loader = {
-            "load": Mock(),
-            "module": mods[mod_i],
-            "version": mods[mod_i].version or "v1",
+            "load": mocker.Mock(),
+            "module": type("object", (object,), mods[mod_i]),
+            "version": mods[mod_i]["version"] if "version" in mods[mod_i] else "v1",
         }
         return type("ModuleFileLoader", (object,), loader or {})()
 
-    mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
-    mock.side_effect = module_file_loader_side_effect
-    return request.param or []
+    group_mock = mocker.patch("lokii.parse.group_parser.ModuleFileLoader")
+    group_mock.side_effect = module_file_loader_side_effect
 
-
-@pytest.fixture
-def mock_module_loader(mocker):
-    def patch(files: list[str] = None, node: dict = None) -> None:
-        mocker.patch("glob.glob", return_value=files or [])
-        mocker.patch("inspect.getsource", return_value="string code content")
-        m = type("GenNodeModule", (object,), node or {})()
-        mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
-        mock.return_value.module = m
-        mock.return_value.version = m.version if hasattr(m, "version") else "v1"
-
-    return patch
+    node_mock = mocker.patch("lokii.parse.node_parser.ModuleFileLoader")
+    node_mock.side_effect = module_file_loader_side_effect
+    return request.param if hasattr(request, "param") else []
 
 
 @pytest.fixture(scope="function")
 def setup_test_env(request):
     def teardown():
         Lokii.clean_env(force=True)
+        if os.path.exists("data"):
+            shutil.rmtree("data")
 
     Lokii.setup_env()
     request.addfinalizer(teardown)
