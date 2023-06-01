@@ -1,15 +1,17 @@
 version: '3.8'
 services:
+  cache:
+      image: redis:7-alpine
+      restart: always
+      ports:
+        - '6379:6379'
+      command: redis-server --save 20 1 --loglevel warning
+
   db:
-    image: postgres:14.1-alpine
+    image: postgres:15-alpine
     restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
       - '5432:5432'
-    volumes:
-      - db:/var/lib/postgresql/data
-volumes:
-  db:
-    driver: local

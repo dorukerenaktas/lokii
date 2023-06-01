@@ -3,7 +3,7 @@ from faker import Faker
 fake = Faker()
 
 source = """
-SELECT i.range, t, o.officeCode
+SELECT i.range, t, o.office_code
     FROM offices o
     CROSS JOIN VALUES('manager', 'employee') as data(t)
     CROSS JOIN range(3) as i
@@ -11,14 +11,14 @@ SELECT i.range, t, o.officeCode
 
 
 def item(args):
-    officeCode = args["params"]["officeCode"]
+    office_code = args["params"]["office_code"]
     return {
-        "employeeNumber": args["id"],
-        "firstName": fake.first_name(),
-        "lastName": fake.last_name(),
+        "employee_number": args["id"],
+        "first_name": fake.first_name(),
+        "last_name": fake.last_name(),
         "extension": fake.random_number(digits=2),
         "email": fake.email(),
-        "officeCode": officeCode,
-        "reportsTo": fake.random_int(min=1, max=10000),
-        "jobTitle": fake.job(),
+        "office_code": office_code,
+        "reports_to": fake.random_int(min=1, max=10000),
+        "job_title": fake.job(),
     }

@@ -5,6 +5,7 @@ import uuid
 
 from lokii.config import CONFIG
 from lokii.storage.data_storage import DataStorage
+from lokii.storage.batch_iterator import BatchIterator
 from lokii.model.node_module import GenNodeModule
 from lokii.parse.node_parser import NodeParser
 from lokii.parse.group_parser import GroupParser
@@ -63,7 +64,7 @@ class Lokii:
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
 
-        self.export()
+        self.export(nodes)
         Lokii.clean_env(purge)
 
     def generate_node(self, node: GenNodeModule) -> (int, int, list[str]):
@@ -80,7 +81,8 @@ class Lokii:
         logger.info("{:,} items generated in {}".format(item_count, t))
         return target_count, item_count, generated_file_paths
 
-    def export(self):
+    def export(self, nodes):
+        exported = {n: False for n in nodes.keys()}
         with PerfTimerContext() as t:
             groups = self.__group_parser.parse()
             # create dependency map from node source queries
@@ -90,22 +92,42 @@ class Lokii:
             ]
             analyzer = GraphAnalyzer(dep_map)
             exec_order = analyzer.execution_order()
-            for name in exec_order:
-                group = groups[name]
-                if group.before:
-                    group.before({})
 
+            # start from root and exec found `before` functions
             for name in exec_order:
+                logger = logging.getLogger(name)
+                group = groups[name]
+                node_names = [n.name for n in nodes.values() if group.name in n.groups]
+                if group.before:
+                    logger.info("Executing before()")
+                    group.before({"nodes": node_names})
+                else:
+                    logger.info("before() not executed.")
+
+            # start from leafs and exec found `export` functions
+            for name in exec_order[::-1]:
+                logger = logging.getLogger(name)
                 group = groups[name]
                 if group.export:
-                    # TODO: check each node that belongs to this group
-                    #  if node exported once do not export for consequent runs
-                    group.export({})
+                    exports = [k for k in nodes.keys() if not exported[k]]
+                    for exp_node in exports:
+                        logger.info("Executing export() for node %s" % exp_node)
+                        # execute export function for each node in this group
+                        iterator = BatchIterator(self.__data_storage, exp_node)
+                        group.export({"name": exp_node, "batches": iterator})
+                        exported[exp_node] = True
+                else:
+                    logger.info("export() not executed.")
 
+            # start from leafs and exec found `after` functions
             for name in exec_order[::-1]:
+                logger = logging.getLogger(name)
                 group = groups[name]
                 if group.after:
+                    logger.info("Executing after()")
                     group.after({})
+                else:
+                    logger.info("after() not executed.")
 
     def is_node_valid(self, node: GenNodeModule, dep_keys: list[str]):
         metadata = self.__data_storage.meta(dep_keys)
