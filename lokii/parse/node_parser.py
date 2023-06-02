@@ -53,7 +53,7 @@ class NodeParser(BaseParser):
         :rtype: list[GenNodeModule]
         """
         glob_path = path.join(self.root, NODE_RESOLVER)
-        file_paths = [f for f in glob(glob_path)]
+        file_paths = [f for f in glob(glob_path, recursive=True)]
 
         for fp in file_paths:
             loader = ModuleFileLoader(fp)

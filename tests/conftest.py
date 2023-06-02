@@ -2,10 +2,11 @@ import os
 import shutil
 
 import pytest
-from lokii.config import CONFIG
 from pytest import FixtureRequest
 from pytest_mock import MockerFixture
 
+
+from lokii.config import CONFIG
 from lokii import Lokii
 
 
@@ -21,6 +22,7 @@ def glob_files(mocker, request):
     :rtype: list[str]
     """
     files = request.param if hasattr(request, "param") else []
+    files = [os.path.normpath(f) for f in files]
     mocker.patch(
         "lokii.parse.group_parser.glob",
         return_value=[f for f in files if CONFIG.gen.group_ext in f],

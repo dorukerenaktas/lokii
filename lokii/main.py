@@ -5,6 +5,7 @@ import uuid
 
 from lokii.config import CONFIG
 from lokii.storage.data_storage import DataStorage
+from lokii.storage.batch_iterator import BatchIterator
 from lokii.model.node_module import GenNodeModule
 from lokii.parse.node_parser import NodeParser
 from lokii.parse.group_parser import GroupParser
@@ -14,15 +15,13 @@ from lokii.exec.node_executor import NodeExecutor
 
 
 class Lokii:
-    def __init__(self, source_folder: str, out_folder: str):
+    def __init__(self, source_folder: str):
         """
         Generates massive amount of relational mock data.
 
         :param source_folder: path of root folder that contains schema and table definitions
-        :param out_folder: path of output folder for mock data
         """
         self.__source_folder = source_folder
-        self.__out_folder = out_folder
         self.__gen_id = str(uuid.uuid4())
 
         Lokii.setup_env()
@@ -30,7 +29,7 @@ class Lokii:
         self.__node_parser = NodeParser(self.__source_folder)
         self.__group_parser = GroupParser(self.__source_folder)
 
-    def generate(self, purge: bool = False):
+    def generate(self, export: bool = False, purge: bool = False):
         with PerfTimerContext() as t:
             nodes = self.__node_parser.parse()
             # create dependency map from node source queries
@@ -62,7 +61,9 @@ class Lokii:
         logging.info("Generation completed!")
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
-        self.__data_storage.export(self.__out_folder, "csv")
+
+        if export:
+            self.export(nodes)
         Lokii.clean_env(purge)
 
     def generate_node(self, node: GenNodeModule) -> (int, int, list[str]):
@@ -78,6 +79,63 @@ class Lokii:
 
         logger.info("{:,} items generated in {}".format(item_count, t))
         return target_count, item_count, generated_file_paths
+
+    def export(self, nodes):
+        exported = {n: False for n in nodes.keys()}
+        with PerfTimerContext() as t:
+            groups = self.__group_parser.parse()
+            group_nodes = {
+                g: [n.name for n in nodes.values() if g in n.groups]
+                for g in groups.keys()
+            }
+            # create dependency map from node source queries
+            dep_map = [
+                (g.name, [gr for gr in g.groups if gr in groups])
+                for g in groups.values()
+            ]
+            analyzer = GraphAnalyzer(dep_map)
+            exec_order = analyzer.execution_order()
+
+            # start from root and exec found `before` functions
+            for name in exec_order:
+                logger = logging.getLogger(name)
+                if groups[name].before:
+                    logger.info("Executing before()")
+                    groups[name].before({"nodes": group_nodes[name]})
+                else:
+                    logger.info("before() not executed.")
+
+            # start from leafs and exec found `export` functions
+            for name in exec_order[::-1]:
+                logger = logging.getLogger(name)
+                if groups[name].export:
+                    exports = [
+                        k
+                        for k in nodes.keys()
+                        if not exported[k] and k in group_nodes[name]
+                    ]
+                    for n in exports:
+                        logger.info("Executing export() for node %s" % n)
+                        cols = self.__data_storage.cols(n)
+                        # execute export function for each node in this group
+                        iterator = BatchIterator(self.__data_storage, n)
+                        groups[name].export(
+                            {"name": n, "cols": cols, "batches": iterator}
+                        )
+                        exported[n] = True
+                else:
+                    logger.info("export() not executed.")
+
+            # start from leafs and exec found `after` functions
+            for name in exec_order[::-1]:
+                logger = logging.getLogger(name)
+                if groups[name].after:
+                    logger.info("Executing after()")
+                    groups[name].after({"nodes": group_nodes[name]})
+                else:
+                    logger.info("after() not executed.")
+        export_count = len([k for k in exported.keys() if exported[k]])
+        logger.info("{:,} nodes exported in {}".format(export_count, t))
 
     def is_node_valid(self, node: GenNodeModule, dep_keys: list[str]):
         metadata = self.__data_storage.meta(dep_keys)

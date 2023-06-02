@@ -53,15 +53,18 @@ class GroupParser(BaseParser):
         :rtype: list[GroupModule]
         """
         glob_path = path.join(self.root, GROUP_RESOLVER)
-        file_paths = [f for f in glob(glob_path)]
+        file_paths = [f for f in glob(glob_path, recursive=True)]
 
         for fp in file_paths:
             loader = ModuleFileLoader(fp)
             loader.load()
             mod = loader.module
 
+            # extract group name from dirname
             m_name = path.dirname(fp).split(path.sep)[-1]
-            parsed = GroupModule(m_name)
+            # extract groups from file path
+            m_groups = path.relpath(path.dirname(fp), self.root).split(path.sep)[:-1]
+            parsed = GroupModule(m_name, m_groups)
 
             # ensure group configuration is valid
             if self.attr(mod, "before"):
@@ -75,5 +78,5 @@ class GroupParser(BaseParser):
             if self.attr(mod, "after"):
                 self.func(mod.after, "`after` must be function at %s" % fp)
                 self.sig(mod.after, 1, "`after` accepts only one param at %s" % fp)
-                parsed.export = mod.after
+                parsed.after = mod.after
             yield parsed

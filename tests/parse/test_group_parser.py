@@ -25,6 +25,25 @@ def test_parse_should_use_folder_name_as_group_identifier(
     assert expect == parsed[expect].name
 
 
+@pytest.mark.parametrize(
+    "glob_files, load_modules, expect",
+    [
+        (
+            ["/test/path/g1/t1.group.py", "/test/path/g1/g2/t2.group.py"],
+            [{"name": "g1"}, {"name": "g2"}],
+            [[], ["g1"]],
+        )
+    ],
+    indirect=["glob_files", "load_modules"],
+)
+def test_parse_should_use_file_path_to_extract_groups(glob_files, load_modules, expect):
+    parser = GroupParser("/test/path")
+    parser.parse()
+    for i, module_path in enumerate(glob_files):
+        node_name = load_modules[i]["name"]
+        assert expect[i] == parser.groups[node_name].groups
+
+
 @pytest.mark.parametrize("glob_files", [["/test/path/g1/g1.group.py"]], indirect=True)
 @pytest.mark.parametrize(
     "load_modules, expect",

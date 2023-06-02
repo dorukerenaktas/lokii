@@ -72,6 +72,18 @@ class DataStorage:
             data = conn.execute(q % keys).fetch_df()
             return data.to_dict("records")
 
+    def cols(self, name) -> list[str]:
+        """
+        Fetches generated column name list for given node.
+        :param name: name of the node
+        :type name: str
+        :return: list of no columns
+        """
+        with self.connect() as conn:
+            q = "DESCRIBE %s;"
+            data = conn.execute(q % name).fetchall()
+            return [col[0] for col in data]
+
     def insert(self, name: str, files: list[str]) -> None:
         """
         Creates a table for given node name in local relational database. If there is a table

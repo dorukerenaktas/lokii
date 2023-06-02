@@ -72,13 +72,10 @@ class Command:
         )
 
         parser.add_argument(
-            "-o",
-            "--out-folder",
-            action="store",
-            metavar="PATH",
-            default="./data",
-            type=str,
-            help="redirect output to a file",
+            "-e",
+            "--export",
+            action="store_true",
+            help="execute group export modules",
         )
 
         parser.add_argument(
@@ -99,13 +96,12 @@ class Command:
         with LoggingContext(level=verbose, filename=arguments.log_file):
             try:
                 print(LOKII_ASCII)
-                lokii_gen = Lokii(arguments.source_folder, arguments.out_folder)
-                lokii_gen.generate(arguments.purge)
+                _lokii = Lokii(arguments.source_folder)
+                _lokii.generate(arguments.export, arguments.purge)
             except Exception as err:
                 logging.critical(str(err), exc_info=True)
 
 
 def exec_cmd(argv=None) -> None:
-    """A simple method that runs a Command."""
     command = Command(argv)
     command.execute()
