@@ -49,56 +49,38 @@ def test_exec_cmd_should_clear_db_if_purge(glob_files, load_modules):
 
 
 @pytest.mark.parametrize(
-    "glob_files, load_modules, out_path",
-    [(["t1.node.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
-    indirect=["glob_files", "load_modules"],
+    "glob_files, load_modules",
+    [(["t1.node.py"], [{"source": "SELECT 1", "item": lambda x: x}])],
+    indirect=True,
 )
-def test_exec_cmd_should_execute_generation(glob_files, load_modules, out_path):
-    exec_cmd("lokii -p -o %s -f ." % out_path)
-    assert os.path.exists(out_path)
-    shutil.rmtree(out_path)
-
-
-@pytest.mark.parametrize(
-    "glob_files, load_modules, out_path",
-    [(["t1.node.py"], [{"source": "SELECT 1", "item": lambda x: x}], "test_out_1")],
-    indirect=["glob_files", "load_modules"],
-)
-def test_exec_cmd_should_cache_consequent_runs(
-    glob_files, load_modules, out_path, caplog
-):
-    exec_cmd("lokii -o %s -f ." % out_path)
+def test_exec_cmd_should_cache_consequent_runs(glob_files, load_modules, caplog):
+    exec_cmd("lokii -f .")
     assert os.path.exists(CONFIG.temp.db_path)
     caplog.clear()
 
-    exec_cmd("lokii -p -o %s -f ." % out_path)
+    exec_cmd("lokii -p -f .")
     assert "not changed. Using existing dataset." in caplog.text
-    assert os.path.exists(out_path)
-    shutil.rmtree(out_path)
 
 
 gen_mod = {"source": "SELECT 1", "item": lambda x: x, "version": "v1"}
 
 
 @pytest.mark.usefixtures("glob_files", "load_modules")
-@pytest.mark.parametrize("out_path", ["test_out_1"])
 @pytest.mark.parametrize(
     "glob_files, load_modules", [(["t1.node.py"], [gen_mod])], indirect=True
 )
-def test_exec_cmd_should_regenerate_on_code_change(caplog, out_path):
+def test_exec_cmd_should_regenerate_on_code_change(caplog):
     # start generation for code version v1
     gen_mod["version"] = "v1"
-    exec_cmd("lokii -o %s -f ." % out_path)
+    exec_cmd("lokii -f .")
     assert os.path.exists(CONFIG.temp.db_path)
     caplog.clear()
 
     # start generation for code version v2
     gen_mod["version"] = "v2"
-    exec_cmd("lokii -p -o %s -f ." % out_path)
+    exec_cmd("lokii -p -f .")
     # should regenerate and not use cache
     assert "not changed. Using existing dataset." not in caplog.text
-    assert os.path.exists(out_path)
-    shutil.rmtree(out_path)
 
 
 gen_mod1, gen_mod2 = (
@@ -108,23 +90,20 @@ gen_mod1, gen_mod2 = (
 
 
 @pytest.mark.usefixtures("glob_files", "load_modules")
-@pytest.mark.parametrize("out_path", ["test_out_1"])
 @pytest.mark.parametrize(
     "glob_files, load_modules",
     [(["t1.node.py", "t2.node.py"], [gen_mod1, gen_mod2])],
     indirect=True,
 )
-def test_exec_cmd_should_regenerate_on_dependency_change(caplog, out_path):
+def test_exec_cmd_should_regenerate_on_dependency_change(caplog):
     # start generation for dependency code version v1
     gen_mod2["version"] = "v1"
-    exec_cmd("lokii -o %s -f ." % out_path)
+    exec_cmd("lokii -f .")
     assert os.path.exists(CONFIG.temp.db_path)
     caplog.clear()
 
     # start generation for dependency code version v2
     gen_mod2["version"] = "v2"
-    exec_cmd("lokii -p -o %s -f ." % out_path)
+    exec_cmd("lokii -p -f .")
     # should regenerate and not use cache because of dependency change
     assert "not changed. Using existing dataset." not in caplog.text
-    assert os.path.exists(out_path)
-    shutil.rmtree(out_path)
