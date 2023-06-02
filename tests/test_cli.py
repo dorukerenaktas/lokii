@@ -46,8 +46,6 @@ def test_exec_cmd_should_log_errors_with_critical_level(
 def test_exec_cmd_should_clear_db_if_purge(glob_files, load_modules):
     exec_cmd("lokii -p")
     assert not os.path.exists(CONFIG.temp.db_path)
-    assert os.path.exists("data")
-    shutil.rmtree("data")
 
 
 @pytest.mark.parametrize(

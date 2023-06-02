@@ -32,7 +32,7 @@ class Command:
         parser = argparse.ArgumentParser(
             prog=self.prog_name,
             description="%s\n%s version %s"
-                        % (LOKII_ASCII, self.prog_name, CONFIG.version),
+            % (LOKII_ASCII, self.prog_name, CONFIG.version),
             formatter_class=formatter_class,
         )
 
@@ -72,13 +72,10 @@ class Command:
         )
 
         parser.add_argument(
-            "-o",
-            "--out-folder",
-            action="store",
-            metavar="PATH",
-            default="./data",
-            type=str,
-            help="redirect output to a file",
+            "-e",
+            "--export",
+            action="store_true",
+            help="execute group export modules",
         )
 
         parser.add_argument(
@@ -99,8 +96,8 @@ class Command:
         with LoggingContext(level=verbose, filename=arguments.log_file):
             try:
                 print(LOKII_ASCII)
-                _lokii = Lokii(arguments.source_folder, arguments.out_folder)
-                _lokii.generate(arguments.purge)
+                _lokii = Lokii(arguments.source_folder)
+                _lokii.generate(arguments.export, arguments.purge)
             except Exception as err:
                 logging.critical(str(err), exc_info=True)
 
@@ -108,7 +105,3 @@ class Command:
 def exec_cmd(argv=None) -> None:
     command = Command(argv)
     command.execute()
-
-
-if __name__ == "__main__":
-    exec_cmd("lokii -f ..\\example\\e-commerce")

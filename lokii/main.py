@@ -15,15 +15,13 @@ from lokii.exec.node_executor import NodeExecutor
 
 
 class Lokii:
-    def __init__(self, source_folder: str, out_folder: str):
+    def __init__(self, source_folder: str):
         """
         Generates massive amount of relational mock data.
 
         :param source_folder: path of root folder that contains schema and table definitions
-        :param out_folder: path of output folder for mock data
         """
         self.__source_folder = source_folder
-        self.__out_folder = out_folder
         self.__gen_id = str(uuid.uuid4())
 
         Lokii.setup_env()
@@ -31,7 +29,7 @@ class Lokii:
         self.__node_parser = NodeParser(self.__source_folder)
         self.__group_parser = GroupParser(self.__source_folder)
 
-    def generate(self, purge: bool = False):
+    def generate(self, export: bool = False, purge: bool = False):
         with PerfTimerContext() as t:
             nodes = self.__node_parser.parse()
             # create dependency map from node source queries
@@ -64,7 +62,8 @@ class Lokii:
         logging.info("Total target item count: {:,}".format(total_target_count))
         logging.info("Generated {:,} items in {}".format(total_item_count, t))
 
-        self.export(nodes)
+        if export:
+            self.export(nodes)
         Lokii.clean_env(purge)
 
     def generate_node(self, node: GenNodeModule) -> (int, int, list[str]):
@@ -132,6 +131,8 @@ class Lokii:
                     groups[name].after({"nodes": group_nodes[name]})
                 else:
                     logger.info("after() not executed.")
+        export_count = len([k for k in exported.keys() if exported[k]])
+        logger.info("{:,} nodes exported in {}".format(export_count, t))
 
     def is_node_valid(self, node: GenNodeModule, dep_keys: list[str]):
         metadata = self.__data_storage.meta(dep_keys)
