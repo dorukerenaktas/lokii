@@ -18,7 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords="data generation, relational datasets, development environment, testing, database",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
