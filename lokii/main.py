@@ -85,6 +85,10 @@ class Lokii:
         exported = {n: False for n in nodes.keys()}
         with PerfTimerContext() as t:
             groups = self.__group_parser.parse()
+            group_nodes = {
+                g: [n.name for n in nodes.values() if g in n.groups]
+                for g in groups.keys()
+            }
             # create dependency map from node source queries
             dep_map = [
                 (g.name, [gr for gr in g.groups if gr in groups])
@@ -96,25 +100,26 @@ class Lokii:
             # start from root and exec found `before` functions
             for name in exec_order:
                 logger = logging.getLogger(name)
-                group = groups[name]
-                node_names = [n.name for n in nodes.values() if group.name in n.groups]
-                if group.before:
+                if groups[name].before:
                     logger.info("Executing before()")
-                    group.before({"nodes": node_names})
+                    groups[name].before({"nodes": group_nodes[name]})
                 else:
                     logger.info("before() not executed.")
 
             # start from leafs and exec found `export` functions
             for name in exec_order[::-1]:
                 logger = logging.getLogger(name)
-                group = groups[name]
-                if group.export:
-                    exports = [k for k in nodes.keys() if not exported[k]]
+                if groups[name].export:
+                    exports = [
+                        k
+                        for k in nodes.keys()
+                        if not exported[k] and k in group_nodes[name]
+                    ]
                     for exp_node in exports:
                         logger.info("Executing export() for node %s" % exp_node)
                         # execute export function for each node in this group
                         iterator = BatchIterator(self.__data_storage, exp_node)
-                        group.export({"name": exp_node, "batches": iterator})
+                        groups[name].export({"name": exp_node, "batches": iterator})
                         exported[exp_node] = True
                 else:
                     logger.info("export() not executed.")
@@ -122,10 +127,9 @@ class Lokii:
             # start from leafs and exec found `after` functions
             for name in exec_order[::-1]:
                 logger = logging.getLogger(name)
-                group = groups[name]
-                if group.after:
+                if groups[name].after:
                     logger.info("Executing after()")
-                    group.after({})
+                    groups[name].after({"nodes": group_nodes[name]})
                 else:
                     logger.info("after() not executed.")
 

@@ -1,58 +1,26 @@
-import os.path
 import redis
 
-conn_str = "redis://localhost:6379?ssl_cert_reqs=none&decode_responses=True"
+conn_str = "redis://localhost:6379?decode_responses=True"
 
 
-def before(args):
+def before(_):
     r = redis.from_url(conn_str)
 
-    # group directory path
-    search_exp = os.path.dirname(__file__)
-    # search directory to find files with `node_name + .before.sql`
-    sql_files = [os.path.join(search_exp, f + ".before.sql") for f in args["nodes"]]
-    # filter and ignore if file not exists
-    sql_files = [f for f in sql_files if os.path.exists(f)]
-
-    conn = None
-    try:
-        # create db connection
-        conn = psycopg2.connect(conn_str)
-        with conn.cursor() as cur:
-            # always clear your storage before starting a new export
-            cur.execute("DROP SCHEMA public CASCADE;")
-            cur.execute("CREATE SCHEMA public;")
-            conn.commit()
-
-            for sql_file in sql_files:
-                print(sql_file)
-                # execute sql files for nodes in this group
-                cur.execute(open(sql_file, "r").read())
-        conn.commit()
-    finally:
-        if conn is not None:
-            conn.close()
+    for key in r.scan_iter("prefix:*"):
+        # always clear your storage before starting a new export
+        r.delete(key)
 
 
 def export(args):
-    node_name = args["name"]
     batches = args["batches"]
-    insert_q = "INSERT INTO %s (%s) VALUES(%s)"
 
-    conn = None
-    try:
-        # create db connection
-        conn = psycopg2.connect(conn_str)
-        with conn.cursor() as cur:
-            for batch in batches:
-                insert_q = insert_q % (
-                    node_name,
-                    ",".join(batch[0].keys()),
-                    ",".join(["%s" for _ in batch[0].keys()]),
-                )
-                params = [tuple(item.values()) for item in batch]
-                execute_batch(cur, insert_q, params)
-        conn.commit()
-    finally:
-        if conn is not None:
-            conn.close()
+    r = redis.from_url(conn_str)
+    pipe = r.pipeline()
+
+    for batch in batches:
+        for item in batch:
+            # generated item contains "cache_key"
+            # checkout customer_session.node.py
+            pipe.hset(item["cache_key"], mapping=item)
+        # execute batch
+        pipe.execute()

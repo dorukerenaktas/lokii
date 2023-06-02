@@ -78,5 +78,5 @@ class GroupParser(BaseParser):
             if self.attr(mod, "after"):
                 self.func(mod.after, "`after` must be function at %s" % fp)
                 self.sig(mod.after, 1, "`after` accepts only one param at %s" % fp)
-                parsed.export = mod.after
+                parsed.after = mod.after
             yield parsed
