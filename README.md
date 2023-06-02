@@ -83,15 +83,50 @@ Group file defines how each node data will be exported. There are special functi
 - `after`: Called once after export operation
 
 ```python
-# database.group.py
+# filesystem.group.py
+import os
+import shutil
+from csv import DictWriter
+
+out_path = "out_data"
+
 
 def before(args):
-    pass
+    """
+    Executed before export function.
+    :param args: contains node names that belongs to this group
+    :type args: {"nodes": list[str]} 
+    """
+    if os.path.exists(out_path):
+        # always clear your storage before starting a new export
+        shutil.rmtree(out_path)
+    os.makedirs(out_path)
+
 
 def export(args):
-    pass
+    """
+    Executed for all nodes that belongs to this group
+    :param args: contains node name, node columns and a batch iterator
+    :type args: {"name": str, "cols": list[str], "batches": list[dict]} 
+    """
+    node_name = args["name"]
+    node_cols = args["cols"]
+    batches = args["batches"]
+    # out_data/offices.csv
+    out_file_path = os.path.join(out_path, node_name + ".csv")
+    with open(out_file_path, 'w+', newline='', encoding='utf-8') as outfile:
+        writer = DictWriter(outfile, fieldnames=node_cols)
+        writer.writeheader()
+        for batch in batches:
+            writer.writerows(batch)
+
 
 def after(args):
+    """
+    Executed after export function.
+    :param args: contains node names that belongs to this group
+    :type args: {"nodes": list[str]} 
+    """
     pass
 ```
 

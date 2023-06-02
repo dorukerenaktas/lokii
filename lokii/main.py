@@ -114,12 +114,15 @@ class Lokii:
                         for k in nodes.keys()
                         if not exported[k] and k in group_nodes[name]
                     ]
-                    for exp_node in exports:
-                        logger.info("Executing export() for node %s" % exp_node)
+                    for n in exports:
+                        logger.info("Executing export() for node %s" % n)
+                        cols = self.__data_storage.cols(n)
                         # execute export function for each node in this group
-                        iterator = BatchIterator(self.__data_storage, exp_node)
-                        groups[name].export({"name": exp_node, "batches": iterator})
-                        exported[exp_node] = True
+                        iterator = BatchIterator(self.__data_storage, n)
+                        groups[name].export(
+                            {"name": n, "cols": cols, "batches": iterator}
+                        )
+                        exported[n] = True
                 else:
                     logger.info("export() not executed.")
 

@@ -23,11 +23,11 @@ def test_init_should_create_database_and_meta_table():
         ("SELECT 100", []),
         (
             """
-                SELECT i.range, t, o.officeCode
-                    FROM offices o
-                    CROSS JOIN VALUES('manager', 'employee') as data(t)
-                    CROSS JOIN range(3) as i
-                """,
+                    SELECT i.range, t, o.officeCode
+                        FROM offices o
+                        CROSS JOIN VALUES('manager', 'employee') as data(t)
+                        CROSS JOIN range(3) as i
+                    """,
             ["offices"],
         ),
     ],
@@ -80,6 +80,15 @@ def test_meta_should_return_data_for_given_keys():
     assert len(deps) == 2
     assert len([d for d in deps if d["name"] == "test_node2"]) == 1
     assert len([d for d in deps if d["name"] == "test_node3"]) == 1
+
+
+def test_cols_should_return_column_names_for_given_node():
+    storage = DataStorage()
+    with storage.connect() as conn:
+        _temp = TempStorage("_")
+        _temp.dump([{"col1": i, "col2": i} for i in range(10)])
+        storage.insert("n1", _temp.batches)
+        assert ["col1", "col2"] == storage.cols("n1")
 
 
 @pytest.mark.parametrize("node, expect", [("s1.n2", "s1"), ("s2.n2", "s2")])
