@@ -8,6 +8,7 @@ from lokii.util.module_file_loader import ModuleFileLoader
 from lokii.util.perf_timer_context import PerfTimerContext
 from lokii.parse.base_parser import BaseParser
 
+logger = logging.getLogger("lokii.group_parser")
 GROUP_RESOLVER = "**/*%s" % CONFIG.gen.group_ext
 
 
@@ -39,9 +40,9 @@ class GroupParser(BaseParser):
 
         group_count = len(groups)
         if group_count == 0:
-            logging.warning("No group conf file found at %s" % self.root)
+            logger.warning("No group conf file found", extra={"at": self.root})
         else:
-            logging.info("%d group definitions parsed in %s" % (group_count, t))
+            logger.info("%d group definitions parsed in %s" % (group_count, t))
         return self.groups
 
     def __parse_groups(self):
@@ -60,11 +61,12 @@ class GroupParser(BaseParser):
             loader.load()
             mod = loader.module
 
-            # extract group name from dirname
+            # extract group name from dir name
             m_name = path.dirname(fp).split(path.sep)[-1]
             # extract groups from file path
             m_groups = path.relpath(path.dirname(fp), self.root).split(path.sep)[:-1]
             parsed = GroupModule(m_name, m_groups)
+            logger.debug("Found valid group `%s`", m_name, extra={"at": fp})
 
             # ensure group configuration is valid
             if self.attr(mod, "before"):

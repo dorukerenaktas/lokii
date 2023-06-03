@@ -1,12 +1,11 @@
+import logging
 import os.path
 from functools import partial
 
 import duckdb
-from typing import TypedDict
+from typing import TypedDict, Callable
 
 from lokii.config import CONFIG
-
-CONN = None  #: duckdb.DuckDBPyConnection
 
 NodeMetadata = TypedDict("NodeMetadata", {"name": str, "version": str, "gen_id": str})
 
@@ -27,22 +26,29 @@ class DataStorage:
             conn.execute(q).fetchall()
 
     def deps(self, query: str) -> list:
-        with self.connect() as conn:
-            names = conn.get_table_names(query)
-            return list(names)
+        names = duckdb.get_table_names(query)
+        return list(names)
 
     def count(self, query: str) -> int:
-        with self.connect() as conn:
-            q = "WITH _t AS (%s) SELECT COUNT() FROM _t;" % query
-            (count,) = conn.execute(q).fetchone()
-            return count
+        q = "WITH _t AS (%s) SELECT COUNT() FROM _t;" % query
+        try:
+            with self.connect() as conn:
+                (count,) = conn.execute(q).fetchone()
+                return count
+        except duckdb.Error as err:
+            logging.error("Error occurred while executing count query:\n\n%s\n" % q)
+            raise err
 
     def exec(self, query: str, index: int, size: int) -> list[dict]:
-        with self.connect() as conn:
-            args = (query, size, index * size)
-            q = "WITH _t AS (%s) SELECT * FROM _t LIMIT %d OFFSET %d;" % args
-            data = conn.execute(q).fetch_df()
-            return data.to_dict("records")
+        args = (query, size, index * size)
+        q = "WITH _t AS (%s) SELECT * FROM _t LIMIT %d OFFSET %d;" % args
+        try:
+            with self.connect() as conn:
+                data = conn.execute(q).fetch_df()
+                return data.to_dict("records")
+        except duckdb.Error as err:
+            logging.error("Error occurred while executing source query:\n\n%s\n" % q)
+            raise err
 
     def save(self, gen_id: str, name: str, version: str) -> None:
         """
@@ -94,12 +100,7 @@ class DataStorage:
         :param files: list of generated file paths
         """
         with self.connect() as conn:
-            if "." in name:
-                # create schema if node name defines `schema.table` syntax
-                assert len(name.split(".")) == 2, "Nested schemas are not supported."
-                schema = name.split(".")[0]
-                q = "CREATE SCHEMA IF NOT EXISTS %s;"
-                conn.execute(q % schema).fetchall()
+            assert "." not in name, "Node names can not contain dot(.) = %s" % name
 
             # concatenate and insert file contents in a fresh table
             q = "CREATE OR REPLACE TABLE %s AS SELECT * FROM read_json_auto(%s);"

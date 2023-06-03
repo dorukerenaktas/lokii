@@ -8,6 +8,7 @@ from lokii.util.module_file_loader import ModuleFileLoader
 from lokii.util.perf_timer_context import PerfTimerContext
 from lokii.parse.base_parser import BaseParser
 
+logger = logging.getLogger("lokii.node_parser")
 NODE_RESOLVER = "**/*%s" % CONFIG.gen.node_ext
 
 
@@ -39,9 +40,9 @@ class NodeParser(BaseParser):
 
         node_count = len(nodes)
         if node_count == 0:
-            logging.warning("No generation node file found at %s" % self.root)
+            logger.warning("No generation node file found", extra={"at": self.root})
         else:
-            logging.info("%d generation node parsed in %s" % (node_count, t))
+            logger.info("%d generation node parsed in %s" % (node_count, t))
         return self.nodes
 
     def __parse_nodes(self):
@@ -77,4 +78,5 @@ class NodeParser(BaseParser):
                 m_name = mod.name
 
             parsed = GenNodeModule(mod.source, mod.item, m_name, m_version, m_groups)
+            logger.debug("Found valid node `%s`", m_name, extra={"at": fp})
             yield parsed

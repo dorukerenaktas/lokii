@@ -22,12 +22,9 @@ def test_init_should_create_database_and_meta_table():
         ("SELECT * from customers", ["customers"]),
         ("SELECT 100", []),
         (
-            """
-                    SELECT i.range, t, o.officeCode
-                        FROM offices o
-                        CROSS JOIN VALUES('manager', 'employee') as data(t)
-                        CROSS JOIN range(3) as i
-                    """,
+            """SELECT i.range, t, o.officeCode FROM offices o
+                            CROSS JOIN VALUES('manager', 'employee') as data(t)
+                            CROSS JOIN range(3) as i""",
             ["offices"],
         ),
     ],
@@ -84,25 +81,20 @@ def test_meta_should_return_data_for_given_keys():
 
 def test_cols_should_return_column_names_for_given_node():
     storage = DataStorage()
-    with storage.connect() as conn:
-        _temp = TempStorage("_")
-        _temp.dump([{"col1": i, "col2": i} for i in range(10)])
-        storage.insert("n1", _temp.batches)
-        assert ["col1", "col2"] == storage.cols("n1")
+    _temp = TempStorage("_")
+    _temp.dump([{"col1": i, "col2": i} for i in range(10)])
+    storage.insert("n1", _temp.batches)
+    assert ["col1", "col2"] == storage.cols("n1")
 
 
 @pytest.mark.parametrize("node, expect", [("s1.n2", "s1"), ("s2.n2", "s2")])
-def test_insert_should_create_schema_if_node_name_contain_dot(node, expect):
+def test_insert_should_raise_error_if_schema_exists(node, expect):
     storage = DataStorage()
-    with storage.connect() as conn:
-        _temp = TempStorage("_")
-        _temp.dump([{"data": i} for i in range(10)])
+    _temp = TempStorage("_")
+    _temp.dump([{"data": i} for i in range(10)])
+    with pytest.raises(AssertionError) as err:
         storage.insert(node, _temp.batches)
-        res = conn.execute(
-            "SELECT * FROM information_schema.schemata WHERE schema_name = '%s';"
-            % expect
-        ).fetchone()
-        assert expect in res
+    assert "Node names can not contain dot" in str(err.value)
 
 
 @pytest.mark.parametrize("loop, expect", [([7], 7), ([12, 10, 7], 29)])

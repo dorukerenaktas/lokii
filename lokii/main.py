@@ -13,6 +13,8 @@ from lokii.util.perf_timer_context import PerfTimerContext
 from lokii.util.graph_analyzer import GraphAnalyzer
 from lokii.exec.node_executor import NodeExecutor
 
+logger = logging.getLogger("lokii")
+
 
 class Lokii:
     def __init__(self, source_folder: str):
@@ -32,11 +34,9 @@ class Lokii:
     def generate(self, export: bool = False, purge: bool = False):
         with PerfTimerContext() as t:
             nodes = self.__node_parser.parse()
+
             # create dependency map from node source queries
-            dep_map = [
-                (n.name, [d for d in self.__data_storage.deps(n.source) if d in nodes])
-                for n in nodes.values()
-            ]
+            dep_map = list(self.order_nodes(nodes))
             analyzer = GraphAnalyzer(dep_map)
             exec_order = analyzer.execution_order()
 
@@ -45,7 +45,7 @@ class Lokii:
                 run = nodes[name]
                 dep_keys = analyzer.dependencies(name)
                 if self.is_node_valid(run, dep_keys):
-                    logging.info("%s not changed. Using existing dataset." % name)
+                    logger.info("%s not changed. Using existing dataset." % name)
                     continue
 
                 # generate dataset
@@ -58,9 +58,9 @@ class Lokii:
                 # insert generated data in database
                 self.__data_storage.insert(run.name, file_paths)
 
-        logging.info("Generation completed!")
-        logging.info("Total target item count: {:,}".format(total_target_count))
-        logging.info("Generated {:,} items in {}".format(total_item_count, t))
+        logger.info("Generation completed!")
+        logger.info("Total target item count: {:,}".format(total_target_count))
+        logger.info("Generated {:,} items in {}".format(total_item_count, t))
 
         if export:
             self.export(nodes)
@@ -152,6 +152,20 @@ class Lokii:
                 return False  # must regenerate
         # no code changes, no dependencies changed
         return True  # dataset is valid, do not regenerate
+
+    def order_nodes(self, nodes):
+        for n in nodes.values():
+            # get dependencies in node source query
+            deps = self.__data_storage.deps(n.source)
+            # check if dependency exists in parsed nodes
+            for dep in deps:
+                if dep not in nodes:
+                    raise AssertionError(
+                        "Dependency `%s` in node source query is not found!\n"
+                        "Node: %s" % (dep, n.name)
+                    )
+            logger.debug("Dependencies found for `%s`: %s" % (n.name, deps))
+            yield n.name, deps
 
     @staticmethod
     def setup_env():
