@@ -1,10 +1,5 @@
 from os import path, environ, cpu_count
-
-root = path.dirname(path.dirname(__file__))
-# read app version from root of the project
-f = open(path.join(root, "VERSION"), "r")
-VERSION = f.read().strip()
-f.close()
+import lokii
 
 # temp directory that contains generated runtime files and database
 TEMP_DIR_PATH = environ.get("LOKII__TEMP_DIR_PATH", ".temp")
@@ -70,7 +65,7 @@ class __Config:
 
     @property
     def version(self):
-        return VERSION
+        return lokii.__version__
 
     @property
     def temp(self):

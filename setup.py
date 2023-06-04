@@ -4,14 +4,11 @@ from os import path
 from setuptools import setup, find_packages
 
 root = path.dirname(__file__)
-with open(path.join(root, "VERSION"), "r") as f:
-    VERSION = f.read().strip()
 with open(path.join(root, "README.md"), "r") as f:
     README = f.read().strip()
 
 setup(
     name="lokii",
-    version=VERSION,
     packages=find_packages(where="."),
     description="Generate, Load, Develop and Test with consistent relational datasets!",
     long_description=README,
@@ -40,7 +37,6 @@ setup(
         "console_scripts": ["lokii=lokii.cli:exec_cmd"],
     },
     url="https://github.com/dorukerenaktas/lokii",
-    data_files=[("", ["VERSION"])],
     install_requires=[
         "pandas==2.0.1",
         "pathos==0.3.0",
