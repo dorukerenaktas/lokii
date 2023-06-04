@@ -1,7 +1,3 @@
-
-# Created by https://www.toptal.com/developers/gitignore/api/linux,macos,windows,vscode,visualstudiocode,visualstudio,intellij+all,python
-# Edit at https://www.toptal.com/developers/gitignore?templates=linux,macos,windows,vscode,visualstudiocode,visualstudio,intellij+all,python
-
 ### Intellij+all ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
@@ -668,4 +664,7 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-# End of https://www.toptal.com/developers/gitignore/api/linux,macos,windows,vscode,visualstudiocode,visualstudio,intellij+all,python
+# Lokii generated files
+**/.temp/*
+.temp/*
+*.duckdb
