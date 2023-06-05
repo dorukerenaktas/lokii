@@ -99,15 +99,16 @@ class DataStorage:
         :param name: node name of the module
         :param files: list of generated file paths
         """
-        if len(files) == 0:
-            return
-
         with self.connect() as conn:
             assert "." not in name, "Node names can not contain dot(.) = %s" % name
 
             # concatenate and insert file contents in a fresh table
             q = "CREATE OR REPLACE TABLE %s AS SELECT * FROM read_json_auto(%s);"
-            conn.execute(q % (name, files)).fetchall()
+            q = q % (name, files)
+            if len(files) == 0:
+                q = "CREATE OR REPLACE TABLE %s(id INTEGER);"
+                q = q % name
+            conn.execute(q).fetchall()
 
     def export(self, out_path: str, fmt: str) -> None:
         """
