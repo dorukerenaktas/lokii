@@ -16,6 +16,9 @@ class TempStorage:
         self.item_count = 0
 
     def dump(self, batch_data: list[dict]) -> None:
+        if len(batch_data) == 0:
+            return
+
         storage_key = self.node_name + str(len(self.batches))
         storage_path = os.path.join(CONFIG.temp.data_path, "%s.json" % storage_key)
 

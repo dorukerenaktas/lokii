@@ -99,6 +99,9 @@ class DataStorage:
         :param name: node name of the module
         :param files: list of generated file paths
         """
+        if len(files) == 0:
+            return
+
         with self.connect() as conn:
             assert "." not in name, "Node names can not contain dot(.) = %s" % name
 
