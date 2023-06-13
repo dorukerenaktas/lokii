@@ -19,6 +19,9 @@ GEN_BATCH_SIZE = environ.get("LOKII__GEN_BATCH_SIZE", 100000)
 # -
 GEN_CHUNK_SIZE = environ.get("LOKII__GEN_CHUNK_SIZE", 200)
 
+# -
+DATA_DISABLE_OPTIMIZERS = environ.get("LOKII__DATA_DISABLE_OPTIMIZERS", "true")
+
 
 class __Config:
     class __TempConfig:
@@ -63,6 +66,17 @@ class __Config:
         def chunk_size(self) -> int:
             return int(GEN_CHUNK_SIZE)
 
+    class __DataConfig:
+        """
+        Global configuration for storing data query information.
+        """
+
+        @property
+        def disable_optimizers(self) -> bool:
+            # prevents duckdb issue that causes error when optimizing multiple joins in query
+            # https://github.com/duckdb/duckdb/issues/5880#issuecomment-1523613623
+            return DATA_DISABLE_OPTIMIZERS == "true"
+
     @property
     def version(self):
         return lokii.__version__
@@ -74,6 +88,10 @@ class __Config:
     @property
     def gen(self):
         return self.__GenConfig()
+
+    @property
+    def data(self):
+        return self.__DataConfig()
 
 
 CONFIG = __Config()

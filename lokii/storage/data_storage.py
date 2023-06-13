@@ -31,6 +31,8 @@ class DataStorage:
 
     def count(self, query: str) -> int:
         q = "WITH _t AS (%s) SELECT COUNT() FROM _t;" % query
+        if CONFIG.data.disable_optimizers:
+            q = "pragma disable_optimizer; " + q
         try:
             with self.connect() as conn:
                 (count,) = conn.execute(q).fetchone()
@@ -42,6 +44,8 @@ class DataStorage:
     def exec(self, query: str, index: int, size: int) -> list[dict]:
         args = (query, size, index * size)
         q = "WITH _t AS (%s) SELECT * FROM _t LIMIT %d OFFSET %d;" % args
+        if CONFIG.data.disable_optimizers:
+            q = "pragma disable_optimizer; " + q
         try:
             with self.connect() as conn:
                 data = conn.execute(q).fetch_df()
